@@ -1,0 +1,29 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.so
+*.egg-info/
+.venv/
+.env
+.env.*
+
+# === Node / React ===
+node_modules/
+dist/
+build/
+.cache/
+*.log
+
+# === OS / IDE ===
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# === Misc ===
+*.csv
+*.sqlite3
+*.db
+__logs__/
+tmp/

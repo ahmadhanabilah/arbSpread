@@ -1,0 +1,103 @@
+{
+  "symbols": [
+    {
+      "symbol": "MEGA",
+      "MIN_SPREAD": 0.3,
+      "SPREAD_TP": 0.15,
+      "MIN_TRADE_VALUE": 20,
+      "MAX_TRADE_VALUE": 500,
+      "MAX_INVENTORY_VALUE": 8000,
+      "PERC_OF_OB": 50,
+      "CHECK_SPREAD_INTERVAL": 1,
+      "SHOW_LIVE_SPREAD": false
+    },
+    {
+      "symbol": "MON",
+      "MIN_SPREAD": 0.3,
+      "SPREAD_TP": 0.2,
+      "MIN_TRADE_VALUE": 100,
+      "MAX_TRADE_VALUE": 500,
+      "MAX_INVENTORY_VALUE": 1000,
+      "PERC_OF_OB": 50,
+      "CHECK_SPREAD_INTERVAL": 1,
+      "SHOW_LIVE_SPREAD": false
+    },
+    {
+      "symbol": "HYPE",
+      "MIN_SPREAD": 0.3,
+      "SPREAD_TP": 0.2,
+      "MIN_TRADE_VALUE": 100,
+      "MAX_TRADE_VALUE": 500,
+      "MAX_INVENTORY_VALUE": 0,
+      "PERC_OF_OB": 50,
+      "CHECK_SPREAD_INTERVAL": 1,
+      "SHOW_LIVE_SPREAD": false
+    },
+    {
+      "symbol": "RESOLV",
+      "MIN_SPREAD": 0.3,
+      "SPREAD_TP": 0.2,
+      "MIN_TRADE_VALUE": 50,
+      "MAX_TRADE_VALUE": 500,
+      "MAX_INVENTORY_VALUE": 1000,
+      "PERC_OF_OB": 50,
+      "CHECK_SPREAD_INTERVAL": 1,
+      "SHOW_LIVE_SPREAD": false
+    },
+    {
+      "symbol": "PUMP",
+      "MIN_SPREAD": 0.3,
+      "SPREAD_TP": 0.2,
+      "MIN_TRADE_VALUE": 100,
+      "MAX_TRADE_VALUE": 500,
+      "MAX_INVENTORY_VALUE": 1000,
+      "PERC_OF_OB": 50,
+      "CHECK_SPREAD_INTERVAL": 1,
+      "SHOW_LIVE_SPREAD": false
+    },
+    {
+      "symbol": "ZEC",
+      "MIN_SPREAD": 0.3,
+      "SPREAD_TP": 0.2,
+      "MIN_TRADE_VALUE": 50,
+      "MAX_TRADE_VALUE": 100,
+      "MAX_INVENTORY_VALUE": 300,
+      "PERC_OF_OB": 50,
+      "CHECK_SPREAD_INTERVAL": 1,
+      "SHOW_LIVE_SPREAD": false
+    },
+    {
+      "symbol": "BTC",
+      "MIN_SPREAD": 0.3,
+      "SPREAD_TP": 0.2,
+      "MIN_TRADE_VALUE": 10,
+      "MAX_TRADE_VALUE": 20,
+      "MAX_INVENTORY_VALUE": 1000,
+      "PERC_OF_OB": 50,
+      "CHECK_SPREAD_INTERVAL": 1,
+      "SHOW_LIVE_SPREAD": false
+    },
+    {
+      "symbol": "ASTER",
+      "MIN_SPREAD": 0.3,
+      "SPREAD_TP": 0.2,
+      "MIN_TRADE_VALUE": 50,
+      "MAX_TRADE_VALUE": 500,
+      "MAX_INVENTORY_VALUE": 1000,
+      "PERC_OF_OB": 50,
+      "CHECK_SPREAD_INTERVAL": 1,
+      "SHOW_LIVE_SPREAD": false
+    },
+    {
+      "symbol": "BERA",
+      "MIN_SPREAD": 0.3,
+      "SPREAD_TP": 0.2,
+      "MIN_TRADE_VALUE": 50,
+      "MAX_TRADE_VALUE": 500,
+      "MAX_INVENTORY_VALUE": 1000,
+      "PERC_OF_OB": 50,
+      "CHECK_SPREAD_INTERVAL": 1,
+      "SHOW_LIVE_SPREAD": false
+    }
+  ]
+}

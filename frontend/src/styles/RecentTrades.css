@@ -1,0 +1,85 @@
+/* ✅ Horizontal row */
+.trades-row-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    width: 90%;
+    padding: 20px; /* add top/bottom padding for separation */
+    margin-right:auto;
+    margin-left:auto;
+}
+
+/* ✅ Both tables side-by-side and fully visible */
+.table-block {
+    flex: 1; 
+    max-width: 50%; 
+    background: #ffffff1f;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(119, 110, 110, 0.4);
+    overflow-x: auto;
+    padding: 12px;
+}
+
+/* ✅ Table layout stays wide enough for content */
+table {
+    width: 100%;
+    min-width: auto;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+.table-title {
+    text-align: center;
+    font-size: 24px;
+    margin-bottom: 24px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+/* Table cells */
+th, td {
+    width: auto;
+    padding: 12px;
+    font-size: 18px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Profit/loss colors */
+.pnl-positive { color: green; font-weight: bold; }
+.pnl-negative { color: red; font-weight: bold; }
+
+
+
+/* ✅ Mobile adjustments */
+@media (max-width: 640px) {
+    .table-title {
+        text-align: left;
+        font-size: 16px;
+        margin-bottom: 24px;
+        font-weight: bold;
+    }
+
+    .table-block th:nth-child(1), td:nth-child(1) { width: 60px; }
+    .table-block th:nth-child(2), td:nth-child(2) { width: 40px; }
+    .table-block th:nth-child(3), td:nth-child(3) { width: 40px; }
+    .table-block th:nth-child(4), td:nth-child(4) { width: 40px; }
+    .table-block th:nth-child(5), td:nth-child(5) { width: 120px; }
+    .table-block th:nth-child(6), td:nth-child(6) { width: 120px; }
+
+    .table-block table {
+        width: 100%;
+        table-layout: fixed;
+    }
+
+    .table-block th,
+    .table-block td {
+        white-space: normal;  /* allow wrapping */
+        word-break: break-word; /* break long words */
+        padding: 6px 8px;
+    }
+
+
+}

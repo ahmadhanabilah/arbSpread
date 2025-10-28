@@ -1,0 +1,229 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
+
+body {
+    font-family: "Inter", sans-serif;
+    background-color: #f9fafb;
+}
+
+/* Container */
+.main-container {
+    padding: 16px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.page-title {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 32px;
+}
+
+/* Card */
+.card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+        0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    padding: 24px;
+    margin-bottom: 32px;
+}
+
+.centered-card {
+    max-width: 400px;
+    margin: 80px auto;
+    text-align: center;
+}
+
+.card input {
+    display: block;
+    width: 100px;
+    padding: 10px;
+    margin: 8px 0;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+}
+
+/* Buttons */
+.btn {
+    background-color: #3b82f6;
+    color: white;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 14px;
+}
+
+.btn:hover {
+    background-color: #2563eb;
+}
+
+.btn.start {
+    background-color: #10b981;
+}
+
+.btn.start:hover {
+    background-color: #059669;
+}
+
+.btn.stop {
+    background-color: #6b7280;
+}
+
+.btn.stop:hover {
+    background-color: #4b5563;
+}
+
+/* Table Title and Actions */
+.table-title {
+    text-align: center;
+    margin-bottom: 16px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.table-actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.table-container {
+    margin: 0 auto;
+    margin-top: 16px;
+    width: 95%;
+    max-width: 1600px;
+    overflow-x: auto;
+    border-radius: 12px;
+    background-color: white;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+                0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Force equal column widths */
+#symbolsTable {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;   /* makes all columns equal width */
+}
+
+#symbolsTable th,
+#symbolsTable td {
+    width: 11%;             
+    text-align: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #e5e7eb;
+    word-wrap: break-word;
+    white-space: normal;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+/* Inputs stay compact */
+#symbolsTable input {
+    width: 90%;
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    text-align: center;
+    box-sizing: border-box;
+    display: block;
+    margin: 0 auto;
+}
+
+/* Header styling */
+#symbolsTable thead th {
+    font-weight: 600;
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+/* Buttons aligned neatly */
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+}
+
+/* ===================================== */
+/* ✅ Responsive Adjustments */
+/* ===================================== */
+
+@media (max-width: 1024px) {
+    #symbolsTable th,
+    #symbolsTable td {
+        font-size: 13px;
+        padding: 6px;
+    }
+
+    #symbolsTable input {
+        width: 80%;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 768px) {
+    .table-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .btn {
+        width: 100%;
+        max-width: 240px;
+    }
+
+    .table-container {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    #symbolsTable {
+    width: 300%;
+        font-size: 12px;
+    }
+
+    #symbolsTable input {
+        width: 70%;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .card {
+        padding: 16px;
+    }
+
+    .table-title {
+        font-size: 1.2rem;
+    }
+
+    .btn {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    #symbolsTable th,
+    #symbolsTable td {
+        font-size: 12px;
+        padding: 4px;
+    }
+
+    #symbolsTable input {
+        width: 100%;
+        font-size: 12px;
+        padding: 4px;
+    }
+
+    /* Enable horizontal scroll */
+    .table-container {
+        overflow-x: auto;
+    }
+}

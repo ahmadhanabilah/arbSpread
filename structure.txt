@@ -1,0 +1,30 @@
+website1/
+│
+├── backend/
+│   ├── panel.py                ← FastAPI backend (merged panel + reports)
+│   ├── helper_lighter_web.py
+│   ├── helper_extended_web.py
+│   ├── trade_processor.py
+
+│   ├── helpers.py  ?
+│   ├── telegram_api.py ?
+│   ├── config.json
+│   ├── .env
+│   └── requirements.txt
+│
+└── frontend/
+    ├── src/
+    │   ├── components/
+    │   │   ├── BotPanel.jsx
+    │   │   ├── DailyStats.jsx
+    │   │   ├── RecentTrades.jsx
+    │   │   └── Tabs.jsx
+    │   ├── App.jsx
+    │   ├── index.jsx
+    │   └── styles/
+    │       ├── BotPanel.css
+    │       ├── Pnl.css
+    │       └── Trades.css
+    ├── package.json
+    ├── vite.config.js (or CRA config)
+    └── dist/ ← output of `npm run build`
