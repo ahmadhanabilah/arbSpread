@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "../styles/BotPanel.css";
 
-const API_BASE = "";
+const API_BASE = `${window.location.protocol}//${window.location.hostname}:8000`;
 
 export default function BotPanel() {
     const [symbols, setSymbols] = useState([]);
