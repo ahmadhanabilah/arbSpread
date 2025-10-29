@@ -48,17 +48,18 @@ pip install -r requirements.txt
 
 ```bash
 screen -S web-frontend
-node -v
-npm -v
+```
 
-cd arbSpread
+```bash
 npm create vite@latest frontend -- --template react
 cd frontend
 npm install
 npm install react-icons
+```
 
-move and replace App.js + /src
+move and replace /src to frontend
 
+```bash
 npm run dev -- --host --port 3000
 ```
 
