@@ -192,6 +192,8 @@ class LighterAPI:
                 
                 if err:
                     raise Exception(err)
+                else:
+                    logger.info(tx_hash)
 
                 end_time                = time.perf_counter()
                 latency_ms              = (end_time - start_time) * 1000

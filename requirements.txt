@@ -1,0 +1,20 @@
+# Core async and web dependencies
+aiohttp
+asyncio
+fastapi
+python-dotenv
+requests
+traceback2
+
+# Trading SDKs
+x10-python-trading-starknet
+git+https://github.com/elliottech/lighter-python.git
+
+# Telegram integration
+python-telegram-bot
+
+# For your helpers and subprocess handling
+uvicorn
+
+# Optional (if you use CSV, JSON, or datetime manipulation elsewhere)
+pandas
