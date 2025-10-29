@@ -69,8 +69,15 @@ npm run dev -- --host --port 3000
 
 ```bash
 screen -S web-backend
-cd arbSpread/backend
+```
+
+```bash
+cd backend
+```
+
 rename .env_example to .env and fill credentials
+
+```bash
 source .venv/bin/activate
 python3 unified_backend.py
 ```
