@@ -177,6 +177,10 @@ async def test_credentials():
 # =====================================================
 # ================ DATA ROUTES ========================
 # =====================================================
+@app.get("/api/auth_check", dependencies=[Depends(require_auth)])
+async def auth_check():
+    """Simple endpoint to verify username/password"""
+    return {"ok": True}
 
 @app.get("/get_ext")
 async def get_ext():
