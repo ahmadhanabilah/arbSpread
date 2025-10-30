@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "../styles/BotPanel.css";
+import LiveTicker from "./LiveTicker"; // 👈 added
 
 const API_BASE = `${window.location.protocol}//${window.location.hostname}:8000`;
 
@@ -11,6 +12,20 @@ export default function BotPanel() {
     const [loggedIn, setLoggedIn] = useState(user && pass);
     const [config, setConfig] = useState({ symbols: [] });
     const [loading, setLoading] = useState(false);
+
+    // 👇 Live popup state
+    const [showLive, setShowLive] = useState(false);
+    const [liveSymbol, setLiveSymbol] = useState(null);
+
+    const openLive = (symbol) => {
+        setLiveSymbol(symbol);
+        setShowLive(true);
+    };
+
+    const closeLive = () => {
+        setShowLive(false);
+        setLiveSymbol(null);
+    };
 
     const authHeader = {
         Authorization:
@@ -100,7 +115,7 @@ export default function BotPanel() {
                 MAX_INVENTORY_VALUE: 1000,
                 PERC_OF_OB: 50,
                 CHECK_SPREAD_INTERVAL: 1,
-                SHOW_LIVE_SPREAD: false,
+                SHOW_LIVE_SPREAD: true,
             },
         ]);
     }
@@ -145,11 +160,9 @@ export default function BotPanel() {
 
     return (
         <div className="main-container">
-
             <div className="card">
-            
                 <h3 className="table-title">Symbols Management</h3>
-            
+
                 <div className="table-actions">
                     <button className="btn" onClick={loadSymbols}>
                         🔄 Reload
@@ -241,11 +254,7 @@ export default function BotPanel() {
                                                     type="number"
                                                     value={row.MAX_INVENTORY_VALUE}
                                                     onChange={(e) =>
-                                                        updateValue(
-                                                            i,
-                                                            "MAX_INVENTORY_VALUE",
-                                                            parseFloat(e.target.value)
-                                                        )
+                                                        updateValue(i, "MAX_INVENTORY_VALUE", parseFloat(e.target.value))
                                                     }
                                                 />
                                             </td>
@@ -282,6 +291,12 @@ export default function BotPanel() {
                                                     >
                                                         🗑
                                                     </button>
+                                                    <button
+                                                        className="btn live"
+                                                        onClick={() => openLive(row.symbol)}
+                                                    >
+                                                        📡
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -292,6 +307,58 @@ export default function BotPanel() {
                     </table>
                 </div>
             </div>
+
+            {/* 👇 LiveTicker popup modal */}
+            {showLive && (
+                <div
+                    className="modal-overlay"
+                    onClick={closeLive}
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: "rgba(0,0,0,0.6)",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        zIndex: 9999,
+                    }}
+                >
+                    <div
+                        className="modal-content"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            background: "#1e1e1e",
+                            padding: "20px",
+                            borderRadius: "10px",
+                            width: "500px",
+                            maxWidth: "90%",
+                            color: "#fff",
+                        }}
+                    >
+                        <h3 style={{ marginBottom: "10px" }}>
+                            Live Spread — {liveSymbol}
+                        </h3>
+                        <LiveTicker symbol={liveSymbol} />
+                        <button
+                            onClick={closeLive}
+                            style={{
+                                marginTop: "15px",
+                                padding: "6px 12px",
+                                background: "#444",
+                                color: "#fff",
+                                border: "none",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                            }}
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

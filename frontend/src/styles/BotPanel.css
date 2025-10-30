@@ -78,6 +78,26 @@ body {
     background-color: #4b5563;
 }
 
+.btn.live {
+  background-color: #2b9348;
+  color: white;
+  font-weight: bold;
+}
+
+.btn.live:hover {
+  background-color: #1a7431;
+}
+
+.modal-overlay {
+  backdrop-filter: blur(2px);
+}
+
+.modal-content {
+  box-shadow: 0 0 20px rgba(0, 255, 100, 0.3);
+}
+
+
+
 /* Table Title and Actions */
 .table-title {
     text-align: center;
@@ -151,6 +171,9 @@ body {
     justify-content: center;
     gap: 6px;
 }
+
+
+
 
 /* ===================================== */
 /* ✅ Responsive Adjustments */

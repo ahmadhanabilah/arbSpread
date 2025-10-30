@@ -9,7 +9,44 @@ from helper_extended import ExtendedAPI
 from telegram_api import send_telegram_message
 import json
 import subprocess
+import threading
 
+_live_lock = threading.Lock()
+
+def update_live(symbol, text):
+    """Keep only the latest live line for this symbol, formatted with newlines."""
+    os.makedirs("logs", exist_ok=True)
+    live_path = f"logs/{symbol}_live.txt"
+
+    # Replace "|" with a newline for clearer formatting
+    formatted = text.strip().replace("|", "\n")
+
+    with _live_lock:
+        with open(live_path, "w", encoding="utf-8") as f:
+            f.write(formatted + "\n")
+
+
+        
+def setup_logger(symbol):
+    os.makedirs("logs", exist_ok=True)
+    log_path = f"logs/{symbol}.log"
+
+    # Remove existing handlers (avoid duplicate logs)
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+
+    # Configure root logger
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        handlers=[
+            logging.FileHandler(log_path),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+
+    logging.getLogger().info(f"✅ Logger initialized for {symbol}, writing to {log_path}")
+    
 async def restart_bot(symbol, reason):
     logging.info("🔁 Restarting bot for symbol %s...", symbol)
     await send_telegram_message(f"⚠️ Restarting bot for symbol {symbol}... Reason:{reason}")
@@ -131,13 +168,16 @@ def printInfos(LIGHTER_API, EXTENDED_API, spreadLE, spreadEL, symbol=None, showL
     dir                     = 'LE' if l_qty > 0 and e_qty < 0 else ('EL' if l_qty < 0 and e_qty > 0 else '')
 
     if showLiveSpread:
-        print(
-            f"{symbol} SpreadLE: {spreadLE:.2f}% SpreadEL: {spreadEL:.2f}% | "
-            f"allInv : {LIGHTER_API.invValue} | {symbol} Δ={spreadInv:.2f} {dir}",
-            end="\r",
-            flush=True
-        )
-
+        # print(
+        #     f"{symbol} SpreadLE: {spreadLE:.2f}% SpreadEL: {spreadEL:.2f}% | "
+        #     f"allInv : {LIGHTER_API.invValue} | {symbol} Δ={spreadInv:.2f} {dir}",
+        #     end="\r",
+        #     flush=True
+        # )
+        
+        line                = f"SpreadLE: {spreadLE:.2f}%|SpreadEL: {spreadEL:.2f}%|---|Inventory|Δ       : {spreadInv:.2f}|Dir     : {dir} |qtyL    : {l_qty} @ {l_entry_price} |qtyE    : {e_qty} @ {e_entry_price}"# line                = f"{LIGHTER_API.ob}"
+        print(line, end="\r", flush=True)
+        update_live(symbol, line)
 
 # --- Main Trading Loop ---
 async def main(symbol, cfg):
@@ -366,11 +406,12 @@ async def main(symbol, cfg):
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         symbol              = sys.argv[1]
+        setup_logger        (symbol)
         configs             = load_config()
         cfg                 = next((item for item in configs["symbols"] if item["symbol"] == symbol), None)
 
         if cfg is None:
-            print(f"❌ Symbol {symbol} not found in config.json")
+            logging.info(f"❌ Symbol {symbol} not found in config.json")
             sys.exit(1)
 
         asyncio.run(main(symbol, cfg))

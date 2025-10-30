@@ -21,6 +21,17 @@
       "PERC_OF_OB": 50,
       "CHECK_SPREAD_INTERVAL": 1,
       "SHOW_LIVE_SPREAD": true
+    },
+    {
+      "symbol": "BTC",
+      "MIN_SPREAD": 2,
+      "SPREAD_TP": 0.2,
+      "MIN_TRADE_VALUE": 50,
+      "MAX_TRADE_VALUE": 500,
+      "MAX_INVENTORY_VALUE": 1000,
+      "PERC_OF_OB": 50,
+      "CHECK_SPREAD_INTERVAL": 0.1,
+      "SHOW_LIVE_SPREAD": true
     }
   ]
 }

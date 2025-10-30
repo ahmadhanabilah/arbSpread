@@ -43,6 +43,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi import Request
+from starlette.middleware.base import BaseHTTPMiddleware
+import base64
+
+class SSEAuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # only patch if ?auth= present and no Authorization header
+        if "auth" in request.query_params and "authorization" not in request.headers:
+            auth = request.query_params["auth"]
+            # Inject header into scope (works reliably)
+            request.scope["headers"].append(
+                (b"authorization", f"Basic {auth}".encode())
+            )
+        return await call_next(request)
+
+app.add_middleware(SSEAuthMiddleware)
+
 # Optional: serve frontend build later
 if os.path.exists("frontend/dist"):
     app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="frontend")
@@ -174,6 +191,9 @@ async def test_credentials():
     await send_telegram_message("🧪 Credential Test Result:\n" + "\n".join(logs))
     return {"ok": True, "logs": logs}
 
+
+
+
 # =====================================================
 # ================ DATA ROUTES ========================
 # =====================================================
@@ -197,6 +217,46 @@ async def get_pnl_ext():
 @app.get("/get_pnl_lig")
 async def get_pnl_lig():
     return _read_csv_json("trades_daily_pnl_lig.csv")
+
+from fastapi import Request
+from fastapi.responses import StreamingResponse
+import asyncio
+
+@app.get("/api/live_stream/{symbol}", dependencies=[Depends(require_auth)])
+async def stream_live(request: Request, symbol: str):
+    """Stream live.txt updates in real-time using Server-Sent Events (SSE)."""
+    live_path = f"logs/{symbol}_live.txt"
+
+    async def event_stream():
+        last_line = None
+        while True:
+            if await request.is_disconnected():
+                break
+            try:
+                if os.path.exists(live_path):
+                    with open(live_path, "r", encoding="utf-8") as f:
+                        data = f.read().strip()
+
+                    if data and data != last_line:
+                        last_line = data
+                        # ✅ Encode newlines so the browser doesn't split the event
+                        safe_data = data.replace("\n", "\\n")
+                        yield f"data: {safe_data}\n\n"
+
+                await asyncio.sleep(0.5)  # check twice per second
+            except Exception as e:
+                yield f"data: [error] {e}\n\n"
+                await asyncio.sleep(2)
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+
+
+
+
+
+
 
 def _read_csv_json(filename):
     if not os.path.exists(filename):

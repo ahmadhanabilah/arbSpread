@@ -1,0 +1,8 @@
+SpreadLE: -0.66%
+SpreadEL: 0.35%
+---
+Inventory
+Δ       : 0.39
+Dir     : EL 
+qtyL    : -7298.0 @ 0.41965 
+qtyE    : 7298.0 @ 0.41804
