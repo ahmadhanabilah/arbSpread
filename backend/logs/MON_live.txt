@@ -1,8 +1,11 @@
-SpreadLE: 0.98%
-SpreadEL: -1.52%
+---
+Taker Availibility
+SpreadLE: 0.81%
+SpreadEL: -1.20%
 ---
 Inventory
-Δ       : 0.00
-Dir     :  
-qtyL    : 0.0 @ 0.0 
-qtyE    : 0.0 @ 0.0
+Δ       : 1.01
+Dir     : LE
+qtyL    : 42750.0 @ 0.05352 / $2287.98
+qtyE    : -42750.0 @ 0.05406 / $-2311.07
+---

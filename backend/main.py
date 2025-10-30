@@ -175,7 +175,21 @@ def printInfos(LIGHTER_API, EXTENDED_API, spreadLE, spreadEL, symbol=None, showL
         #     flush=True
         # )
         
-        line                = f"SpreadLE: {spreadLE:.2f}%|SpreadEL: {spreadEL:.2f}%|---|Inventory|Δ       : {spreadInv:.2f}|Dir     : {dir} |qtyL    : {l_qty} @ {l_entry_price} |qtyE    : {e_qty} @ {e_entry_price}"# line                = f"{LIGHTER_API.ob}"
+        line = (
+            f"---"
+            f"|Taker Availibility"
+            f"|SpreadLE: {spreadLE:.2f}%"
+            f"|SpreadEL: {spreadEL:.2f}%"
+            f"|---"
+            f"|Inventory"
+            f"|Δ       : {spreadInv:.2f}"
+            f"|Dir     : {dir}"
+            f"|qtyL    : {l_qty} @ {l_entry_price} / ${(l_qty*l_entry_price):.2f}"
+            f"|qtyE    : {e_qty} @ {e_entry_price} / ${(e_qty*e_entry_price):.2f}"
+            f"|---"
+        )
+
+        # line                = f"{LIGHTER_API.ob}"
         print(line, end="\r", flush=True)
         update_live(symbol, line)
 

@@ -250,7 +250,18 @@ async def stream_live(request: Request, symbol: str):
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
-
+@app.get("/api/logs/{symbol}", dependencies=[Depends(require_auth)])
+async def get_logs(symbol: str, lines: int = 100):
+    """Return last N lines from the symbol log file."""
+    log_path = f"logs/{symbol}.log"
+    if not os.path.exists(log_path):
+        return PlainTextResponse(f"No log file found for {symbol}", status_code=404)
+    try:
+        with open(log_path, "r", encoding="utf-8") as f:
+            data = f.readlines()[-lines:]
+        return PlainTextResponse("".join(data))
+    except Exception as e:
+        return PlainTextResponse(f"Error reading log: {e}", status_code=500)
 
 
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "../styles/BotPanel.css";
 import LiveTicker from "./LiveTicker"; // 👈 added
+import LogViewer from "./LogViewer";
 
 const API_BASE = `${window.location.protocol}//${window.location.hostname}:8000`;
 
@@ -26,6 +27,21 @@ export default function BotPanel() {
         setShowLive(false);
         setLiveSymbol(null);
     };
+
+    const [showLog, setShowLog] = useState(false);
+    const [logSymbol, setLogSymbol] = useState(null);
+
+    const openLog = (symbol) => {
+        console.log("🟢 openLog called with:", symbol);
+        setLogSymbol(symbol);
+        setShowLog(true);
+    };
+
+    const closeLog = () => {
+        setShowLog(false);
+        setLogSymbol(null);
+    };
+
 
     const authHeader = {
         Authorization:
@@ -274,7 +290,7 @@ export default function BotPanel() {
                                                             className="btn start"
                                                             onClick={() => startBot(row.symbol)}
                                                         >
-                                                            ▶
+                                                            ▶ Start
                                                         </button>
                                                     )}
                                                     {isRunning && (
@@ -282,21 +298,31 @@ export default function BotPanel() {
                                                             className="btn stop"
                                                             onClick={() => stopBot(row.symbol)}
                                                         >
-                                                            ⏹
+                                                            ⏹ Stop
                                                         </button>
                                                     )}
                                                     <button
                                                         className="btn delete"
                                                         onClick={() => removeSymbol(i)}
                                                     >
-                                                        🗑
+                                                        🗑 Delete
                                                     </button>
                                                     <button
                                                         className="btn live"
                                                         onClick={() => openLive(row.symbol)}
                                                     >
-                                                        📡
+                                                        📡 Live
                                                     </button>
+
+                                                    <button
+                                                        className="btn log"
+                                                        onClick={() => openLog(row.symbol)}
+                                                    >
+                                                        📜 Logs
+                                                    </button>
+
+
+
                                                 </div>
                                             </td>
                                         </tr>
@@ -307,6 +333,7 @@ export default function BotPanel() {
                     </table>
                 </div>
             </div>
+
 
             {/* 👇 LiveTicker popup modal */}
             {showLive && (
@@ -338,9 +365,6 @@ export default function BotPanel() {
                             color: "#fff",
                         }}
                     >
-                        <h3 style={{ marginBottom: "10px" }}>
-                            Live Spread — {liveSymbol}
-                        </h3>
                         <LiveTicker symbol={liveSymbol} />
                         <button
                             onClick={closeLive}
@@ -359,6 +383,58 @@ export default function BotPanel() {
                     </div>
                 </div>
             )}
+
+            {/* 👇 LogViewer popup modal (must be OUTSIDE of showLive block) */}
+            {showLog && (
+                <div
+                    className="modal-overlay"
+                    onClick={closeLog}
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: "rgba(0,0,0,0.6)",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        zIndex: 9999,
+                    }}
+                >
+                    <div
+                        className="modal-content"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            background: "#1e1e1e",
+                            padding: "20px",
+                            borderRadius: "10px",
+                            width: "600px",
+                            maxWidth: "90%",
+                            color: "#fff",
+                        }}
+                    >
+                        <LogViewer symbol={logSymbol} />
+                        <button
+                            onClick={closeLog}
+                            style={{
+                                marginTop: "15px",
+                                padding: "6px 12px",
+                                background: "#444",
+                                color: "#fff",
+                                border: "none",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                            }}
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            )}
+
+
+
         </div>
     );
 }

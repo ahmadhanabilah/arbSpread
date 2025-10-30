@@ -8,7 +8,7 @@ body {
 /* Container */
 .main-container {
     padding: 16px;
-    max-width: 1200px;
+    max-width: 1600px;
     margin: 0 auto;
 }
 
@@ -56,6 +56,7 @@ body {
     cursor: pointer;
     transition: background 0.2s;
     font-size: 14px;
+    height: 40px;
 }
 
 .btn:hover {
@@ -78,24 +79,14 @@ body {
     background-color: #4b5563;
 }
 
-.btn.live {
-  background-color: #2b9348;
-  color: white;
-  font-weight: bold;
-}
-
-.btn.live:hover {
-  background-color: #1a7431;
-}
 
 .modal-overlay {
-  backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
 }
 
 .modal-content {
-  box-shadow: 0 0 20px rgba(0, 255, 100, 0.3);
+    box-shadow: 0 0 20px rgba(0, 255, 100, 0.3);
 }
-
 
 
 /* Table Title and Actions */
@@ -124,19 +115,28 @@ body {
     border-radius: 12px;
     background-color: white;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
-                0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 /* Force equal column widths */
 #symbolsTable {
     width: 100%;
     border-collapse: collapse;
-    table-layout: fixed;   /* makes all columns equal width */
+    table-layout: fixed;
+    /* makes all columns equal width */
+}
+
+/* Make Action column wider */
+#symbolsTable th:last-child,
+#symbolsTable td:last-child {
+    width: 320px;
+    text-align: center;
 }
 
 #symbolsTable th,
 #symbolsTable td {
-    width: 11%;             
+    width: 9%;
+    height: 70px;
     text-align: center;
     padding: 8px 10px;
     border-bottom: 1px solid #e5e7eb;
@@ -180,6 +180,7 @@ body {
 /* ===================================== */
 
 @media (max-width: 1024px) {
+
     #symbolsTable th,
     #symbolsTable td {
         font-size: 13px;
@@ -209,7 +210,7 @@ body {
     }
 
     #symbolsTable {
-    width: 300%;
+        width: 300%;
         font-size: 12px;
     }
 

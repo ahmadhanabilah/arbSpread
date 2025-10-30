@@ -1,8 +1,8 @@
-SpreadLE: 0.06%
-SpreadEL: -0.06%
+SpreadLE: 0.04%
+SpreadEL: -0.05%
 ---
 Inventory
 Δ       : 0.00
 Dir     :  
-qtyL    : 0.0 @ 0.0 
-qtyE    : 0.0 @ 0.0
+qtyL    : 0.0 @ 0.0 / $0.0 
+qtyE    : 0.0 @ 0.0 / $0.0

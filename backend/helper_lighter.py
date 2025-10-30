@@ -153,10 +153,6 @@ class LighterAPI:
         except Exception as e:
             logger.error(f"Lighter handler error: {e}")
 
-
-
-
-
     def _handle_account_update(self, account_id, account):
         try:
             if isinstance(account, dict) and account.get("type") == "ping":
