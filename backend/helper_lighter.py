@@ -103,26 +103,60 @@ class LighterAPI:
                     }
         asyncio.create_task(run_ws())
         
+    # def _handle_orderbook_update(self, market_id, order_book):
+    #     try:
+    #         if isinstance(order_book, dict) and order_book.get("type") == "ping":
+    #             return
+
+    #         order_book["bids"].sort(key=lambda x: float(x["price"]), reverse=True)
+    #         order_book["asks"].sort(key=lambda x: float(x["price"]))
+
+    #         self.ob = {
+    #             "bidPrice": float(order_book["bids"][0]["price"]),
+    #             "askPrice": float(order_book["asks"][0]["price"]),
+    #             "bidSize" : float(order_book["bids"][0]["size"]),
+    #             "askSize" : float(order_book["asks"][0]["size"]),
+    #         }
+            
+    #         self.wsCallback('l_ob')
+
+    #     except Exception as e:
+    #         logger.error(f"Lighter handler error: {e}")
+
+
     def _handle_orderbook_update(self, market_id, order_book):
         try:
             if isinstance(order_book, dict) and order_book.get("type") == "ping":
                 return
 
+            # Sort by price
             order_book["bids"].sort(key=lambda x: float(x["price"]), reverse=True)
             order_book["asks"].sort(key=lambda x: float(x["price"]))
 
+            # --- find first valid bid ---
+            bid = next((b for b in order_book["bids"] if float(b["size"]) > 0), None)
+            ask = next((a for a in order_book["asks"] if float(a["size"]) > 0), None)
+
+            if not bid or not ask:
+                logger.warning(f"No valid bid/ask found for {market_id}")
+                return
+
             self.ob = {
-                "bidPrice": float(order_book["bids"][0]["price"]),
-                "askPrice": float(order_book["asks"][0]["price"]),
-                "bidSize" : float(order_book["bids"][0]["size"]),
-                "askSize" : float(order_book["asks"][0]["size"]),
+                "bidPrice": float(bid["price"]),
+                "askPrice": float(ask["price"]),
+                "bidSize": float(bid["size"]),
+                "askSize": float(ask["size"]),
             }
-            
+
             self.wsCallback('l_ob')
 
         except Exception as e:
             logger.error(f"Lighter handler error: {e}")
-            
+
+
+
+
+
     def _handle_account_update(self, account_id, account):
         try:
             if isinstance(account, dict) and account.get("type") == "ping":

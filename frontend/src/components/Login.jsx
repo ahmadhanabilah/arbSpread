@@ -44,7 +44,7 @@ async function handleLogin(e) {
     return (
         <div className="login-page">
             <form className="login-card" onSubmit={handleLogin}>
-                <h2>🔐 Login to arbSpread</h2>
+                <h2>🔐 Login</h2>
                 <input
                     type="text"
                     placeholder="Username"

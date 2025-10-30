@@ -86,3 +86,11 @@ python3 unified_backend.py
 
 ✅ **Setup complete!**  
 Your environment is now ready to run the project.
+
+## Github Repo Update
+```bash
+git add .
+git commit -m "Update"
+git push origin main
+```
+

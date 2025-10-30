@@ -8,6 +8,13 @@ from helper_lighter import LighterAPI
 from helper_extended import ExtendedAPI
 from telegram_api import send_telegram_message
 import json
+import subprocess
+
+async def restart_bot(symbol, reason):
+    logging.info("🔁 Restarting bot for symbol %s...", symbol)
+    await send_telegram_message(f"⚠️ Restarting bot for symbol {symbol}... Reason:{reason}")
+    await asyncio.sleep(1)
+    os.execv(sys.executable, ['python3'] + sys.argv)
 
 # Load config.json
 def load_config():
@@ -105,6 +112,7 @@ async def balance_positions(L, E):
 def printInfos(LIGHTER_API, EXTENDED_API, spreadLE, spreadEL, symbol=None, showLiveSpread=True):
     lbid, lszb, lask, lsza  = LIGHTER_API.ob["bidPrice"], LIGHTER_API.ob["bidSize"], LIGHTER_API.ob["askPrice"], LIGHTER_API.ob["askSize"]
     ebid, eszb, eask, esza  = EXTENDED_API.ob["bidPrice"], EXTENDED_API.ob["bidSize"], EXTENDED_API.ob["askPrice"], EXTENDED_API.ob["askSize"]
+        
     l_qty, l_entry_price    = LIGHTER_API .accountData["qty"], LIGHTER_API .accountData["entry_price"]
     e_qty, e_entry_price    = EXTENDED_API.accountData["qty"], EXTENDED_API.accountData["entry_price"]
 
@@ -194,6 +202,10 @@ async def main(symbol, cfg):
 
         printInfos(L, E, spreadLE, spreadEL, symbol, showLiveSpread)
 
+        # if L.ob["bidPrice"]==0 or L.ob["bidSize"]==0 or L.ob["askPrice"]==0 or L.ob["askSize"]==0 or E.ob["bidPrice"]==0 or E.ob["bidSize"]==0 or E.ob["askPrice"]==0 or E.ob["askSize"]==0:
+        #     await restart_bot(symbol, f"Invalid order book data detected\nL ob: {L.ob}\nE ob: {E.ob}")
+        #     return
+
         # --- ENTRY ---
         entryCond_LE            = (l_qty >= 0 and e_qty <= 0) and spreadLE > MIN_SPREAD and inv_value < MAX_INVENTORY_VALUE 
         entryCond_EL            = (l_qty <= 0 and e_qty >= 0) and spreadEL > MIN_SPREAD and inv_value < MAX_INVENTORY_VALUE
@@ -233,8 +245,11 @@ async def main(symbol, cfg):
                 await execute_trade(L, E, "BUY", "SELL", qty, newTradeData)
                 await asyncio.sleep(checkSpreadInterval)
                 continue
-            else:
-                logging.info(f'Qty <= MIN_TRADE_VALUE to enterLE: qty={qty}, value={qty * L.ob["askPrice"]}')
+
+            if not qty or qty <= 0:
+                logging.warning(f"⚠️ [entryCond_LE] Calculated qty={qty} is zero or invalid. Restarting bot...")
+                await restart_bot(symbol, 'Invalid trade quantity calculated in entryCond_LE')
+                return
 
         if entryCond_EL:
             qty                 = min(E.ob["askSize"]*PERC_OF_OB, L.ob["bidSize"]*PERC_OF_OB, MAX_TRADE_VALUE/E.ob["askPrice"])
@@ -262,8 +277,11 @@ async def main(symbol, cfg):
                 await execute_trade(L, E, "SELL", "BUY", qty, newTradeData)
                 await asyncio.sleep(checkSpreadInterval)
                 continue
-            else:
-                logging.info(f'Qty <= MIN_TRADE_VALUE to enterEL: qty={qty}, value={qty * E.ob["askPrice"]}')
+
+            if not qty or qty <= 0:
+                logging.warning(f"⚠️ [entryCond_EL] Calculated qty={qty} is zero or invalid. Restarting bot...")
+                await restart_bot(symbol, 'Invalid trade quantity calculated in entryCond_EL')
+                return
 
         if exitCond_fromLE:
             qty                 = min(E.ob["askSize"]*PERC_OF_OB, L.ob["bidSize"]*PERC_OF_OB, MAX_TRADE_VALUE/E.ob["askPrice"])
@@ -296,8 +314,12 @@ async def main(symbol, cfg):
                 await execute_trade(L, E, "SELL", "BUY", qty, newTradeData)
                 await asyncio.sleep(checkSpreadInterval)
                 continue
-            else:
-                logging.info(f'Qty <= MIN_TRADE_VALUE to exitFromLE: qty={qty}, value={qty * E.ob["askPrice"]}')
+
+            if not qty or qty <= 0:
+                logging.warning(f"⚠️ [exitCond_fromLE] Calculated qty={qty} is zero or invalid. Restarting bot...")
+                await restart_bot(symbol, 'Invalid trade quantity calculated in exitCond_fromLE')
+                return
+
 
         if exitCond_fromEL:
             qty                 = min(L.ob["askSize"]*PERC_OF_OB, E.ob["bidSize"]*PERC_OF_OB, MAX_TRADE_VALUE/L.ob["askPrice"])
@@ -330,8 +352,12 @@ async def main(symbol, cfg):
                 await execute_trade(L, E, "BUY", "SELL", qty, newTradeData)
                 await asyncio.sleep(checkSpreadInterval)
                 continue
-            else:
-                logging.info(f'Qty <= MIN_TRADE_VALUE to exitFromEL: qty={qty}, value={qty * E.ob["askPrice"]}')
+
+            if not qty or qty <= 0:
+                logging.warning(f"⚠️ [exitConf_fromEL] Calculated qty={qty} is zero or invalid. Restarting bot...")
+                await restart_bot(symbol, 'Invalid trade quantity calculated in exitCond_fromEL')
+                return
+
 
         await asyncio.sleep(checkSpreadInterval)
 
