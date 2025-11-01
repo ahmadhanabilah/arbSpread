@@ -57,9 +57,16 @@ npm install
 npm install react-icons
 ```
 
-move and replace /src to frontend
+## Need to re-update all files, because frontend is modified by npm
+```bash
+cd ..
+git fetch origin
+git reset --hard origin/main
+```
+
 
 ```bash
+cd frontend
 npm run dev -- --host --port 3000
 ```
 
