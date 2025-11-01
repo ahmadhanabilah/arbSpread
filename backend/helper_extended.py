@@ -50,6 +50,7 @@ class ExtendedAPI:
         }
         self.wsCallback         = None
         self.allSymbols         = []
+        self.currFundRate      = None
 
     async def init(self):
         starkPerpAcc            = StarkPerpetualAccount(
@@ -99,9 +100,27 @@ class ExtendedAPI:
                 except Exception as e:
                     self.ob = { "bidPrice": 0.0, "askPrice": 0.0, "bidSize": 0.0, "askSize": 0.0 }
                     
+        async def subscribeFunding():
+            while True:
+                try:
+                    async with self.ws_client.subscribe_to_funding_rates(self.pair["symbol"]) as stream:
+                        while True:
+                            msg             = await stream.recv()
+                            self._handle_funding_update(msg.data)
+                except Exception as e:
+                    self.currFundRate = None
+
         async def run_ws():
-            await subscribeOrderbook()
+            await asyncio.gather(subscribeOrderbook(),subscribeFunding())
+
         asyncio.create_task(run_ws())
+
+    def _handle_funding_update(self, msg):
+        try:
+            fr = float(msg.funding_rate)
+            self.currFundRate = fr
+        except Exception as e:
+            logger.error(f"⚠️ Error handling Extended funding update: {e}") 
 
     def _handle_orderbook_update(self, msg):
         try:

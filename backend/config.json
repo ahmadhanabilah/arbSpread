@@ -2,36 +2,36 @@
   "symbols": [
     {
       "symbol": "MEGA",
-      "MIN_SPREAD": 0.9,
+      "MIN_SPREAD": 0.8,
       "SPREAD_TP": 0.15,
       "MIN_TRADE_VALUE": 20,
-      "MAX_TRADE_VALUE": 500,
-      "MAX_INVENTORY_VALUE": 4000,
+      "MAX_TRADE_VALUE_ENTRY": 30,
+      "MAX_TRADE_VALUE_EXIT": 500,
+      "MAX_INVENTORY_VALUE": 2000,
       "PERC_OF_OB": 50,
-      "CHECK_SPREAD_INTERVAL": 1,
-      "SHOW_LIVE_SPREAD": true
+      "CHECK_SPREAD_INTERVAL": 1
     },
     {
       "symbol": "MON",
-      "MIN_SPREAD": 2,
-      "SPREAD_TP": 0.3,
+      "MIN_SPREAD": 3.5,
+      "SPREAD_TP": 0.15,
       "MIN_TRADE_VALUE": 20,
-      "MAX_TRADE_VALUE": 500,
-      "MAX_INVENTORY_VALUE": 3000,
+      "MAX_TRADE_VALUE_ENTRY": 30,
+      "MAX_TRADE_VALUE_EXIT": 50,
+      "MAX_INVENTORY_VALUE": 10000,
       "PERC_OF_OB": 50,
-      "CHECK_SPREAD_INTERVAL": 1,
-      "SHOW_LIVE_SPREAD": true
+      "CHECK_SPREAD_INTERVAL": 1
     },
     {
       "symbol": "BTC",
-      "MIN_SPREAD": 2,
-      "SPREAD_TP": 0.2,
-      "MIN_TRADE_VALUE": 50,
-      "MAX_TRADE_VALUE": 500,
-      "MAX_INVENTORY_VALUE": 1000,
+      "MIN_SPREAD": -0.1,
+      "SPREAD_TP": -1,
+      "MIN_TRADE_VALUE": 20,
+      "MAX_TRADE_VALUE_ENTRY": 30,
+      "MAX_TRADE_VALUE_EXIT": 35,
+      "MAX_INVENTORY_VALUE": 30,
       "PERC_OF_OB": 50,
-      "CHECK_SPREAD_INTERVAL": 0.1,
-      "SHOW_LIVE_SPREAD": true
+      "CHECK_SPREAD_INTERVAL": 1
     }
   ]
 }

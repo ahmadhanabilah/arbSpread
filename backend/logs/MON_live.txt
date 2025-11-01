@@ -1,11 +1,26 @@
 ---
-Taker Availibility
-SpreadLE: 0.81%
-SpreadEL: -1.20%
+MON
+---
+Orderbook Data (Based on Taker Prices)
+SpreadLE: 1.66%
+SpreadEL: -1.72%
+---
+Funding Rate
+Net LE  : -0.001296%
+Net EL  : 0.001296%
 ---
 Inventory
-Δ       : 1.01
+Δ       : 1.12
 Dir     : LE
-qtyL    : 42750.0 @ 0.05352 / $2287.98
-qtyE    : -42750.0 @ 0.05406 / $-2311.07
+qtyL    : 146270.0 @ 0.04365 / $6384.69
+qtyE    : -146270.0 @ 0.04414 / $-6456.36
 ---
+Config
+MIN_SPREAD: 3.5%
+SPREAD_TP : 0.15%
+MIN_TRADE_VALUE       : $20
+MAX_TRADE_VALUE_ENTRY : $30
+MAX_TRADE_VALUE_EXIT  : $50
+MAX_INVENTORY_VALUE   : $10000
+PERC_OF_OB            : 50.0%
+CHECK_SPREAD_INTERVAL : 1s

@@ -1,3 +1,8 @@
+
+from collections import defaultdict
+import csv
+from datetime import datetime
+import re
 from collections import defaultdict
 import csv
 from datetime import datetime
@@ -23,9 +28,9 @@ class LighterAPI:
         self.ws_client          = None
         self.config             = {
             "base_url"          : "https://mainnet.zklighter.elliot.ai",
-            "private_key"       : os.getenv("PRIVATE_KEY"),
-            "account_index"     : int(os.getenv("ACCOUNT_INDEX")),
-            "api_key_index"     : int(os.getenv("API_KEY_INDEX")),
+            "private_key"       : os.getenv("LIGHTER_API_PRIVATE_KEY"),
+            "account_index"     : int(os.getenv("LIGHTER_ACCOUNT_INDEX")),
+            "api_key_index"     : int(os.getenv("LIGHTER_API_KEY_INDEX")),
             "slippage"          : float(os.getenv("ALLOWED_SLIPPAGE")) / 100,
         }
         self.market_map         = []
@@ -109,246 +114,359 @@ class LighterAPI:
 
         return market_map
 
-    async def getTrades(self, limit: int = 100):
+
+    async def getTrades(self, page_size: int = 100, max_retries: int = 5):
+        """
+        Fetch trades from Lighter:
+        - If no CSV exists → full sync
+        - If CSV exists → fetch only newer trades (based on timestamp)
+        - Dynamically saves all columns provided by API, ensuring CONSISTENT COLUMN ORDER.
+        """
         try:
-            # ✅ Get (and refresh) auth token automatically
+            filename = "trades_lig.csv"
+            known_fieldnames = None # Variable to hold the definitive, consistent column order
+
+            # --- Step 1: Get auth token ---
             auth = await self._get_auth_token()
             if not auth:
+                logger.error("❌ Auth token unavailable.")
                 return
 
-            # 3️⃣ Prepare request params
-            params = {
-                "auth": auth,
-                "account_index": self.config["account_index"],
-                "sort_by": "timestamp",
-                "sort_dir": "desc",
-                "limit": limit,
-            }
+            # --- Step 2: Detect latest timestamp and retrieve existing header (if file exists) ---
+            newest_ts = 0
+            file_exists = os.path.exists(filename)
+            
+            if file_exists:
+                # First, check header for known_fieldnames
+                with open(filename, "r", newline="", encoding="utf-8") as f_read:
+                    reader_check = csv.reader(f_read)
+                    try:
+                        known_fieldnames = next(reader_check)
+                    except StopIteration:
+                        # File exists but is empty, treat as new file for fieldnames setting
+                        pass
+                
+                # Now read data to find the newest timestamp
+                with open(filename, newline="", encoding="utf-8") as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        ts_str = row.get("timestamp")
+                        if not ts_str:
+                            continue
+                        try:
+                            if str(ts_str).isdigit():
+                                ts_val = int(ts_str)
+                            else:
+                                ts_val = int(datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S").timestamp() * 1000)
+                            newest_ts = max(newest_ts, ts_val)
+                        except Exception:
+                            continue
+                            
+                logger.info(f"📂 Found existing {filename} — newest timestamp: {newest_ts}")
+                logger.info(f"🔢 Using {len(known_fieldnames)} existing columns for consistency.")
+            else:
+                logger.info("🆕 No existing file found — starting full sync.")
 
+            # --- Step 3: Request setup ---
             url = f"{self.config['base_url']}/api/v1/trades"
             headers = {
                 "accept": "application/json",
-                "authorization": auth
+                "authorization": auth,
+            }
+            params = {
+                "account_index": self.config["account_index"],
+                "sort_by": "timestamp",
+                "sort_dir": "desc",
+                "limit": page_size,
             }
 
-            # 4️⃣ Send GET request
+            total_new = 0
+            cursor = None
+
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, headers=headers, params=params) as resp:
-                    if resp.status != 200:
-                        logger.error(f"Failed to fetch trades: {resp.status}")
-                        return
-                    data = await resp.json()
+                while True:
+                    if cursor:
+                        params["cursor"] = cursor
 
-            fetched_trades = data.get("trades", [])
+                    # --- Retry loop ---
+                    for attempt in range(max_retries):
+                        try:
+                            async with session.get(url, headers=headers, params=params, timeout=30) as resp:
+                                data = await resp.json()
+                                break
+                        except Exception as e:
+                            wait = 2 ** attempt
+                            logger.warning(f"⚠️ Request failed ({e}); retrying in {wait}s...")
+                            await asyncio.sleep(wait)
+                    else:
+                        logger.error("❌ Max retries reached; stopping fetch.")
+                        break
 
-            # 5️⃣ Load existing trades and IDs
-            filename = "trades_lig.csv"
-            existing_trades = [] # Store existing trades to combine with new ones
-            existing_ids = set()
-            if os.path.exists(filename):
-                with open(filename, "r", newline="", encoding="utf-8") as f:
-                    reader = csv.DictReader(f)
-                    for row in reader:
-                        existing_ids.add(row["trade_id"])
-                        existing_trades.append(row) # Keep existing trades
+                    trades = data.get("trades", [])
+                    next_cursor = data.get("next_cursor")
+                    if not trades:
+                        logger.info("✅ No more trades found.")
+                        break
 
-            # 6️⃣ Prepare new trades (only the ones not already recorded)
-            new_trades = []
-            new_trades_count = 0
-            for t in fetched_trades:
-                trade_id_str = str(t["trade_id"]) 
-                if trade_id_str in existing_ids:
-                    continue
-
-                readable_time = datetime.fromtimestamp(
-                    t["timestamp"] / 1000
-                ).strftime("%Y-%m-%d %H:%M:%S")
-
-                market_id = str(t["market_id"])
-                symbol = self.market_map.get(market_id, f"UNKNOWN_MARKET_{market_id}")
-
-                new_trade = {
-                    "symbol": symbol,
-                    "trade_id": trade_id_str, # Use string for consistency
-                    "tx_hash": t["tx_hash"],
-                    "market_id": market_id,
-                    "side": "SELL" if t["ask_account_id"]==self.config["account_index"] else "BUY",
-                    "size": t["size"],
-                    "price": t["price"],
-                    "usd_amount": t["usd_amount"],
-                    "block_height": t["block_height"],
-                    "timestamp": readable_time
-                }
-                new_trades.append(new_trade)
-                new_trades_count += 1
-                
-            if not new_trades:
-                logger.info("No new trades to add, CSV will be rewritten with existing data (if any).")
-                if not existing_trades:
-                    return
-
-            # Combine all trades: existing + newly fetched and formatted
-            all_trades = new_trades + existing_trades
-            
-            # 7️⃣ Sort all trades newest → oldest (essential for file integrity)
-            # Sorting by timestamp (the formatted string) ensures order.
-            all_trades.sort(key=lambda x: x["timestamp"], reverse=True)
+                    # --- Stop when reaching older trades ---
+                    # Sort trades ascending to find the true stop point (API returns descending)
+                    trades.sort(key=lambda x: x.get("timestamp", 0))
+                    
+                    # Check how many trades are truly new
+                    new_trades = [t for t in trades if t.get("timestamp", 0) > newest_ts]
+                    
+                    # If the first trade in the batch is older than our newest_ts, we stop
+                    if not new_trades:
+                        logger.info("⏹ Reached already-known trades, stopping.")
+                        break
+                    
+                    # Re-sort to write in descending order (or just write in the order they were processed)
+                    new_trades.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
 
 
-            # 8️⃣ Write (rewrite/overwrite the file)
-            fieldnames = [
-                "symbol", "trade_id", "tx_hash", "market_id",
-                "side", "size", "price", "usd_amount",
-                "block_height", "timestamp"
-            ]
-            
-            # Use "w" mode to overwrite the file
-            with open(filename, "w", newline="", encoding="utf-8") as f: 
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                
-                # Always write the header since we are overwriting
-                writer.writeheader() 
-                
-                # Write the complete, sorted list of all unique trades
-                writer.writerows(all_trades)
+                    # --- FIX: Ensure Consistent Column Order and Write ---
+                    
+                    # 1. If this is a brand new file (no known_fieldnames), define them now.
+                    if known_fieldnames is None:
+                        all_keys = set()
+                        for t in new_trades:
+                            all_keys.update(t.keys())
+                        # Alphabetically sort to establish a consistent order for the first time
+                        known_fieldnames = sorted(list(all_keys)) 
+                        
+                    # 2. Write the trades using the established fieldnames
+                    # We use 'a' (append) mode.
+                    with open(filename, "a", newline="", encoding="utf-8") as f:
+                        # Use 'known_fieldnames' for consistent order. 
+                        # 'extrasaction' = 'ignore' is crucial: ignores any new keys in the current batch
+                        # that weren't present in the initial/existing header.
+                        writer = csv.DictWriter(f, fieldnames=known_fieldnames, extrasaction='ignore')
+                        
+                        # Only write the header if the file was just created (i.e., known_fieldnames was just set
+                        # and we are appending to a file that was just opened, and we are on the first cursor page).
+                        if not file_exists and cursor is None:
+                            writer.writeheader()
+                            
+                        writer.writerows(new_trades)
 
-            # NOTE: The original logger.info used 'symbol', which might be from the last trade.
-            # It's better to use a more generic message or the count.
-            logger.info(f"✅ Rewrote {filename} with {len(all_trades)} unique trades (added {new_trades_count} new).")
+                    total_new += len(new_trades)
+                    logger.info(f"📦 Saved {len(new_trades)} new trades (total {total_new})")
+
+                    if not next_cursor:
+                        break
+                    cursor = next_cursor
+                    await asyncio.sleep(0.5)
+
+            logger.info(f"✅ Completed getTrades — {total_new} new trades added to {filename}")
+            print(f"✅ Completed getTrades — {total_new} new trades added to {filename}")
 
         except Exception as e:
-            logger.error(f"⚠️ Error in getTrades: {e}")
-            
+            logger.error(f"⚠️ Fatal error in getTrades: {e}", exc_info=True)
+            print(f"⚠️ Fatal error in getTrades: {e}")
+
+
     def mergeTrades(self):
-        INPUT_FILE = "trades_lig.csv"
-        OUTPUT_FILE = "trades_merged_lig.csv"
+        input_file  = "trades_lig.csv"
+        output_file = "trades_merged_lig.csv"
+        markets_file = "config_lighterMarkets.csv"
 
-        trades_by_symbol = defaultdict(list)
+        if not os.path.exists(input_file):
+            print("❌ trades_lig.csv not found.")
+            return
 
-        # Step 1: Load all trades
-        with open(INPUT_FILE, newline="") as f:
+        # --- Load market map ---
+        market_map = {}
+        if os.path.exists(markets_file):
+            with open(markets_file, newline='', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    market_map[row["market_id"]] = row["symbol"]
+            logger.info(f"Loaded {len(market_map)} markets from {markets_file}")
+        else:
+            logger.warning(f"⚠️ Market map file not found: {markets_file}")
+
+        ACCOUNT_ID = str(self.config["account_index"])
+        trades_by_market = defaultdict(list)
+
+        def safe_float(x, default=0.0):
+            try:
+                return float(x)
+            except (TypeError, ValueError):
+                return default
+
+        # --- Step 1: Read and normalize ---
+        with open(input_file, newline='', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
-                row["size"] = float(row["size"])
-                row["price"] = float(row["price"])
-                row["usd_amount"] = float(row["usd_amount"])
-                row["block_height"] = int(row["block_height"])
-                row["timestamp"] = datetime.strptime(row["timestamp"], "%Y-%m-%d %H:%M:%S")
-                trades_by_symbol[row["symbol"]].append(row)
-        
-        merged_trades = []
+                try:
+                    row["price"] = safe_float(row.get("price"))
+                    row["size"] = safe_float(row.get("size"))
+                    row["usd_amount"] = safe_float(row.get("usd_amount"))
+                    row["maker_fee_bps"] = safe_float(row.get("maker_fee"))
+                    row["taker_fee_bps"] = safe_float(row.get("taker_fee"))
 
-        # Step 2: Process each symbol
-        for symbol, trades in trades_by_symbol.items():
-            trades.sort(key=lambda x: x["timestamp"])
-            cumulative_qty = 0
-            running_trade = None
+                    trade_value = row["price"] * abs(row["size"])
 
-            for trade in trades:
-                size = trade["size"] if trade["side"].upper() == "BUY" else -trade["size"]
-
-                # Open a new position
-                if cumulative_qty == 0 and size != 0:
-                    running_trade = {
-                        "symbol": symbol,
-                        "side": "BUY" if size > 0 else "SELL",
-                        "start_time": trade["timestamp"],
-                        "end_time": trade["timestamp"],
-                        "qty_opened": abs(size),
-                        "qty_closed": 0.0,
-                        "avg_entry_price": trade["price"],
-                        "avg_exit_price": 0.0,
-                        "entry_value": trade["usd_amount"],
-                        "exit_value": 0.0,
-                        "start_trade_id": trade["trade_id"],
-                        "end_trade_id": trade["trade_id"],
-                        "status": "OPEN",
-                        "pnl_usd": 0.0
-                    }
-
-                elif running_trade:
-                    running_trade["end_time"] = trade["timestamp"]
-                    prev_opened = running_trade["qty_opened"]
-                    prev_closed = running_trade["qty_closed"]
-
-                    # Add to position (same direction)
-                    if (size > 0 and running_trade["side"] == "BUY") or (size < 0 and running_trade["side"] == "SELL"):
-                        running_trade["qty_opened"] += abs(size)
-                        total_opened_now = running_trade["qty_opened"]
-                        running_trade["avg_entry_price"] = (
-                            (running_trade["avg_entry_price"] * prev_opened + trade["price"] * abs(size))
-                            / total_opened_now
-                        )
-                        running_trade["entry_value"] += trade["usd_amount"]
-
-                    # Reduce position (opposite direction)
+                    # 🧮 Determine if WE are maker or taker
+                    if str(row.get("ask_account_id")) == ACCOUNT_ID or str(row.get("bid_account_id")) == ACCOUNT_ID:
+                        if str(row.get("ask_account_id")) == ACCOUNT_ID:
+                            is_maker = bool(row.get("is_maker_ask") == "True" or row.get("is_maker_ask") is True)
+                        elif str(row.get("bid_account_id")) == ACCOUNT_ID:
+                            # maker if bid side was maker
+                            is_maker = bool(row.get("is_maker_ask") == "False" or row.get("is_maker_ask") is False)
+                        else:
+                            is_maker = False
                     else:
-                        running_trade["qty_closed"] += abs(size)
-                        total_closed_now = running_trade["qty_closed"]
-                        running_trade["avg_exit_price"] = (
-                            (running_trade["avg_exit_price"] * prev_closed + trade["price"] * abs(size))
-                            / total_closed_now
-                        )
-                        running_trade["exit_value"] += trade["usd_amount"]
+                        # Skip if neither side matches our account
+                        continue
 
-                    running_trade["end_trade_id"] = trade["trade_id"]
+                    if is_maker:
+                        fee_usd = trade_value * (row["maker_fee_bps"] / 1_000_000)
+                    else:
+                        fee_usd = trade_value * (row["taker_fee_bps"] / 1_000_000)
 
-                cumulative_qty += size
+                    row["fee_usd"] = fee_usd
+                    row["is_maker"] = is_maker
 
-                # Close when fully flat
-                if abs(cumulative_qty) < 1e-8 and running_trade:
-                    cumulative_qty = 0
-                    running_trade["status"] = "CLOSED"
-                    merged_trades.append(running_trade)
-                    running_trade = None
+                    # parse timestamp
+                    ts_raw = row.get("timestamp")
+                    if not ts_raw:
+                        continue
+                    ts_val = int(float(ts_raw))
+                    row["timestamp"] = datetime.fromtimestamp(ts_val / 1000)
 
-            # Save remaining open trade (no exit yet)
-            if running_trade:
-                if abs(running_trade["qty_opened"] - running_trade["qty_closed"]) < 1e-8:
-                    running_trade["status"] = "CLOSED"
+                    # determine side
+                    if row.get("ask_account_id") == ACCOUNT_ID:
+                        row["side"] = "SELL"
+                    elif row.get("bid_account_id") == ACCOUNT_ID:
+                        row["side"] = "BUY"
+                    else:
+                        continue
+
+                    if row["price"] == 0 or row["size"] == 0:
+                        continue
+
+                    market = row.get("market_id", "UNKNOWN")
+                    trades_by_market[market].append(row)
+                except Exception as e:
+                    logger.warning(f"⚠️ Skipping row parse error: {e}")
+
+        if not trades_by_market:
+            logger.warning("⚠️ No valid trades found to merge.")
+            return
+
+        # --- Step 2: Merge trades per market ---
+        merged = []
+        for market, trades in trades_by_market.items():
+            trades.sort(key=lambda x: x["timestamp"])
+
+            running_qty = 0.0
+            entry_side = None
+            entry_time = None
+            entry_trade_id = None
+            qty_opened = qty_closed = entry_price_total = exit_price_total = 0.0
+            total_fee = 0.0
+
+            for t in trades:
+                side = t["side"]
+                qty = t["size"]
+                price = t["price"]
+                time = t["timestamp"]
+                fee = safe_float(t.get("fee_usd", 0.0))
+                trade_id = t["trade_id"]
+
+                total_fee += fee
+
+                # start new position
+                if abs(running_qty) < 1e-12:
+                    qty_opened = qty_closed = entry_price_total = exit_price_total = 0.0
+                    total_fee = fee
+                    entry_side = side
+                    entry_trade_id = trade_id
+                    entry_time = time
+
+                if side == entry_side:
+                    qty_opened += qty
+                    entry_price_total += price * qty
+                    running_qty += qty if side == "BUY" else -qty
                 else:
-                    running_trade["status"] = "OPEN"
-                    running_trade["end_time"] = ""   # 🟢 leave blank for open trades
-                merged_trades.append(running_trade)
+                    qty_closed += qty
+                    exit_price_total += price * qty
+                    running_qty += qty if side == "BUY" and entry_side == "SELL" else -qty
 
-        # Step 3: Calculate PnL
-        for mt in merged_trades:
-            if mt["status"] == "CLOSED" and mt["qty_closed"] > 0:
-                if mt["side"] == "BUY":
-                    mt["pnl_usd"] = (mt["avg_exit_price"] - mt["avg_entry_price"]) * mt["qty_closed"]
-                else:
-                    mt["pnl_usd"] = (mt["avg_entry_price"] - mt["avg_exit_price"]) * mt["qty_closed"]
-            else:
-                mt["pnl_usd"] = 0.0
+                # --- close position ---
+                if abs(running_qty) < 1e-8:
+                    avg_entry = entry_price_total / qty_opened if qty_opened else 0.0
+                    avg_exit = exit_price_total / qty_closed if qty_closed else 0.0
 
-        # Step 4: Sort (newest first)
-        merged_trades.sort(key=lambda x: x["start_time"] if isinstance(x["start_time"], datetime) else datetime.min, reverse=True)
+                    if entry_side == "BUY":
+                        pnl = (avg_exit - avg_entry) * qty_closed
+                    else:
+                        pnl = (avg_entry - avg_exit) * qty_closed
 
-        # Step 5: Write output
-        fieldnames = [
-            "symbol", "side", "start_time", "end_time",
-            "qty_opened", "qty_closed", "avg_entry_price", "avg_exit_price",
-            "entry_value", "exit_value", "pnl_usd",
-            "start_trade_id", "end_trade_id", "status"
-        ]
-        with open(OUTPUT_FILE, "w", newline="") as f:
+                    net_pnl = pnl - total_fee
+
+                    merged.append({
+                        "symbol": market_map.get(market, "UNKNOWN"),
+                        "market_id": market,
+                        "side": entry_side,
+                        "entry_time": entry_time.strftime("%Y-%m-%d %H:%M:%S"),
+                        "exit_time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                        "qty_opened": round(qty_opened, 8),
+                        "qty_closed": round(qty_closed, 8),
+                        "avg_entry_price": round(avg_entry, 8),
+                        "avg_exit_price": round(avg_exit, 8),
+                        "pnl": round(pnl, 8),
+                        "net_pnl": round(net_pnl, 8),
+                        "fee_total": round(total_fee, 8),
+                        "entry_trade_id": entry_trade_id,
+                        "exit_trade_id": trade_id,
+                        "status": "CLOSED",
+                    })
+
+                    running_qty = 0.0
+                    entry_side = entry_trade_id = None
+                    qty_opened = qty_closed = entry_price_total = exit_price_total = total_fee = 0.0
+
+            # --- handle open position ---
+            if entry_side:
+                avg_entry = entry_price_total / qty_opened if qty_opened else 0.0
+                merged.append({
+                    "symbol": market_map.get(market, "UNKNOWN"),
+                    "market_id": market,
+                    "side": entry_side,
+                    "entry_time": entry_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "exit_time": "",
+                    "qty_opened": round(qty_opened, 8),
+                    "qty_closed": round(qty_closed, 8),
+                    "avg_entry_price": round(avg_entry, 8),
+                    "avg_exit_price": "" if qty_closed == 0 else round(exit_price_total / qty_closed, 8),
+                    "pnl": "",
+                    "net_pnl": "",
+                    "fee_total": round(total_fee, 8),
+                    "entry_trade_id": entry_trade_id,
+                    "exit_trade_id": "",
+                    "status": "OPEN",
+                })
+
+        # --- Step 3: Save merged summary ---
+        merged.sort(key=lambda x: x["entry_time"], reverse=True)
+        with open(output_file, "w", newline="", encoding="utf-8") as f:
+            fieldnames = [
+                "symbol", "market_id", "side", "entry_time", "exit_time",
+                "qty_opened", "qty_closed",
+                "avg_entry_price", "avg_exit_price", "pnl", "net_pnl", "fee_total",
+                "entry_trade_id", "exit_trade_id", "status"
+            ]
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
-            for mt in merged_trades:
-                mt["start_time"] = mt["start_time"].strftime("%Y-%m-%d %H:%M:%S") if isinstance(mt["start_time"], datetime) else mt["start_time"]
-                if isinstance(mt["end_time"], datetime):
-                    mt["end_time"] = mt["end_time"].strftime("%Y-%m-%d %H:%M:%S")
-                writer.writerow(mt)
+            writer.writerows(merged)
 
-        print(f"✅ Merged trades saved to {OUTPUT_FILE}")
-        print(f"Total positions: {len(merged_trades)} (including running ones).")
+        print(f"✅ Merged {len(merged)} trades saved to {output_file}")
+
+
 
     def calculateDailyPnL(self):
-        """
-        Summarize daily PnL (USD) and daily volume from merged trades.
-        Only CLOSED trades with valid end_time are counted.
-        Output: trades_daily_pnl_lig.csv
-        """
         INPUT_FILE = "trades_merged_lig.csv"
         OUTPUT_FILE = "trades_daily_pnl_lig.csv"
 
@@ -362,16 +480,16 @@ class LighterAPI:
         with open(INPUT_FILE, newline="") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                if not row["end_time"] or row["status"].upper() != "CLOSED":
+                if not row["exit_time"] or row["status"].upper() != "CLOSED":
                     continue
                 try:
-                    date_str = row["end_time"].split(" ")[0]  # YYYY-MM-DD
-                    pnl = float(row["pnl_usd"])
-                    entryvolume = float(row.get("entry_value", 0))  # fallback to 0 if missing
-                    exitvolume  = float(row.get("exit_value", 0))  # fallback to 0 if missing
+                    date_str        = row["exit_time"].split(" ")[0]  # YYYY-MM-DD
+                    pnl             = float(row["net_pnl"])
+                    entryvolume     = float(row.get("qty_opened", 0))  * float(row.get("avg_entry_price", 0))  
+                    exitvolume      = float(row.get("qty_closed", 0))  * float(row.get("avg_exit_price", 0))
 
-                    daily_pnl[date_str] += pnl
-                    daily_volume[date_str] += entryvolume + exitvolume
+                    daily_pnl[date_str]     += pnl
+                    daily_volume[date_str]  += entryvolume + exitvolume
                 except Exception as e:
                     print(f"⚠️ Skipping row due to error: {e}")
 
@@ -385,123 +503,3 @@ class LighterAPI:
                 writer.writerow([date, round(daily_pnl[date], 8), round(daily_volume[date], 8)])
 
         print(f"✅ Daily PnL and volume summary saved to {OUTPUT_FILE}")
-
-    async def init_getTrades(self, page_size: int = 100, max_retries: int = 5):
-        """
-        Fetch all historical trades for the current account using pagination.
-        Retries automatically on any aiohttp/network error.
-        """
-        try:
-            filename = "trades_lig.csv"
-
-            fieldnames = [
-                "symbol", "trade_id", "tx_hash", "market_id",
-                "side", "size", "price", "usd_amount",
-                "block_height", "timestamp"
-            ]
-
-
-            # Create new CSV with header if missing
-            if not os.path.exists(filename):
-                with open(filename, "w", newline="", encoding="utf-8") as f:
-                    writer = csv.DictWriter(f, fieldnames=fieldnames)
-                    writer.writeheader()
-                logger.info("🆕 trades_lig.csv not found — starting full position sync.")
-            else:
-                logger.info("📂 trades_lig.csv found — stopping init.")
-                return
-
-
-            auth = await self._get_auth_token()
-            if not auth:
-                logger.error("❌ Auth token unavailable.")
-                return
-
-            url = f"{self.config['base_url']}/api/v1/trades"
-            headers = {
-                "accept": "application/json",
-                "authorization": auth
-            }
-
-            params = {
-                "account_index": self.config["account_index"],
-                "sort_by": "timestamp",
-                "sort_dir": "desc",
-                "limit": page_size,
-            }
-
-            with open(filename, "w", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                writer.writeheader()
-
-            logger.info("🚀 Starting full trade sync from Lighter...")
-
-            cursor = None
-            total_fetched = 0
-
-            async with aiohttp.ClientSession() as session:
-                while True:
-                    if cursor:
-                        params["cursor"] = cursor
-
-                    # --- retry loop for any failure ---
-                    for attempt in range(max_retries):
-                        try:
-                            async with session.get(url, headers=headers, params=params, timeout=30) as resp:
-                                data = await resp.json()
-                                break  # ✅ success, exit retry loop
-                        except Exception as e:
-                            wait_time = 2 ** attempt
-                            logger.warning(f"⚠️ Request failed ({type(e).__name__}: {e}). Retrying in {wait_time}s...")
-                            await asyncio.sleep(wait_time)
-                    else:
-                        logger.error("❌ Max retries reached. Stopping pagination.")
-                        break
-                    # -----------------------------------
-
-                    trades = data.get("trades", [])
-                    next_cursor = data.get("next_cursor")
-
-                    if not trades:
-                        logger.info("✅ No more trades found.")
-                        break
-
-                    # Write each batch incrementally
-                    with open(filename, "a", newline="", encoding="utf-8") as f:
-                        writer = csv.DictWriter(f, fieldnames=fieldnames)
-                        for t in trades:
-                            trade_id_str = str(t["trade_id"])
-                            readable_time = datetime.fromtimestamp(t["timestamp"] / 1000).strftime("%Y-%m-%d %H:%M:%S")
-                            market_id = str(t["market_id"])
-                            symbol = self.market_map.get(market_id, f"UNKNOWN_MARKET_{market_id}")
-                            side = "SELL" if t["ask_account_id"] == self.config["account_index"] else "BUY"
-
-                            writer.writerow({
-                                "symbol": symbol,
-                                "trade_id": trade_id_str,
-                                "tx_hash": t["tx_hash"],
-                                "market_id": market_id,
-                                "side": side,
-                                "size": t["size"],
-                                "price": t["price"],
-                                "usd_amount": t["usd_amount"],
-                                "block_height": t["block_height"],
-                                "timestamp": readable_time,
-                            })
-
-                    total_fetched += len(trades)
-                    logger.info(f"📦 Fetched {len(trades)} trades (total {total_fetched}).")
-
-                    if not next_cursor:
-                        break
-                    cursor = next_cursor
-
-                    # small cooldown between pages
-                    await asyncio.sleep(1)
-
-            logger.info(f"✅ Saved {total_fetched} total trades to {filename}")
-            print(f"✅ Saved {total_fetched} total trades to {filename}")
-
-        except Exception as e:
-            logger.error(f"⚠️ Fatal error in init_getTrades: {e}", exc_info=True)
-            print(f"⚠️ Fatal error in init_getTrades: {e}")

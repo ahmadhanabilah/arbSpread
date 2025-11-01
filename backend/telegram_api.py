@@ -5,8 +5,25 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID")
+TELEGRAM_BOT_TOKEN      = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID        = os.getenv("TELEGRAM_CHAT_ID")
+CRIT_TELEGRAM_CHAT_ID   = os.getenv("CRIT_TELEGRAM_CHAT_ID")
+
+async def send_tele_crit(message: str):
+    if not TELEGRAM_BOT_TOKEN or not CRIT_TELEGRAM_CHAT_ID:
+        raise RuntimeError("CRIT_TELEGRAM_BOT_TOKEN and CRIT_TELEGRAM_CHAT_ID must be set in .env")
+
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": CRIT_TELEGRAM_CHAT_ID,
+        "text": message,
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, json=payload) as resp:
+            if resp.status != 200:
+                error_text = await resp.text()
+                raise RuntimeError(f"Telegram send failed: {resp.status} {error_text}")
 
 
 async def send_telegram_message(message: str):

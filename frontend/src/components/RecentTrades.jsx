@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-
 import "../styles/RecentTrades.css";
+
 const API_BASE = `${window.location.protocol}//${window.location.hostname}:8000`;
 
 export default function RecentTrades() {
@@ -22,10 +22,8 @@ export default function RecentTrades() {
                 extRes.json(),
             ]);
 
-            // ✅ Get the top 200 trades (first 200 items)
             setLigData(ligJson.slice(0, 200));
             setExtData(extJson.slice(0, 200));
-
             setError("");
         } catch (e) {
             console.error("Error fetching trades:", e);
@@ -35,26 +33,55 @@ export default function RecentTrades() {
         }
     };
 
-
     useEffect(() => {
         fetchData();
     }, []);
 
+    // 🧾 Helper to download CSV from JS array
+    const downloadCSV = (data, filename) => {
+        if (!data || data.length === 0) {
+            alert("No data available to download.");
+            return;
+        }
+        const headers = Object.keys(data[0]);
+        const csvRows = [
+            headers.join(","), // header row
+            ...data.map((row) =>
+                headers.map((h) => JSON.stringify(row[h] ?? "")).join(",")
+            ),
+        ];
+        const csvContent = csvRows.join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+    };
+
     if (loading) return <div className="p-4 text-center">Loading...</div>;
     if (error) return <div className="p-4 text-center text-red-500">{error}</div>;
-
 
     return (
         <div className="trades-row-container">
 
             {/* ✅ Lighter Trades */}
             <div className="table-block">
-                <h2 className="table-title">Lighter</h2> {/* ✅ Fixed Title */}
+                <div className="table-header">
+                    <h2 className="table-title">Lighter</h2>
+                    <button
+                        className="download-btn"
+                        onClick={() => downloadCSV(ligData, "lighter_trades.csv")}
+                    >
+                        ⬇️ Download CSV
+                    </button>
+                </div>
+
                 <div className="table-responsive">
                     <table>
                         <thead>
                             <tr>
                                 <th>Symbol</th>
+                                <th>Side</th>
                                 <th>PnL ($)</th>
                                 <th>Qty</th>
                                 <th>Value ($)</th>
@@ -66,13 +93,19 @@ export default function RecentTrades() {
                             {ligData.map((row, i) => (
                                 <tr key={i}>
                                     <td>{row.symbol}</td>
-                                    <td className={parseFloat(row.pnl_usd) > 0 ? "pnl-positive" : "pnl-negative"}>
-                                        {parseFloat(row.pnl_usd || 0).toFixed(4)}
+                                    <td>{row.side}</td>
+                                    <td className={parseFloat(row.net_pnl) > 0 ? "pnl-positive" : "pnl-negative"}>
+                                        {parseFloat(row.net_pnl || 0).toFixed(4)}
                                     </td>
-                                    <td>{parseFloat(row.qty_opened || 0).toLocaleString()}</td>
-                                    <td>{parseFloat(row.entry_value || 0).toFixed(2)}</td>
-                                    <td>{row.start_time}</td>
-                                    <td>{row.end_time || "-"}</td>
+                                    <td>{parseFloat(row.qty_opened || 0) + parseFloat(row.qty_closed || 0)}</td>
+                                    <td>
+                                        {(
+                                            (parseFloat(row.qty_opened || 0) * parseFloat(row.avg_entry_price || 0)) +
+                                            (parseFloat(row.qty_closed || 0) * parseFloat(row.avg_exit_price || 0))
+                                        ).toFixed(2)}
+                                    </td>
+                                    <td>{row.entry_time}</td>
+                                    <td>{row.exit_time || "-"}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -82,12 +115,22 @@ export default function RecentTrades() {
 
             {/* ✅ Extended Trades */}
             <div className="table-block">
-                <h2 className="table-title">Extended</h2> {/* ✅ Fixed Title */}
+                <div className="table-header">
+                    <h2 className="table-title">Extended</h2>
+                    <button
+                        className="download-btn"
+                        onClick={() => downloadCSV(extData, "extended_trades.csv")}
+                    >
+                        ⬇️ Download CSV
+                    </button>
+                </div>
+
                 <div className="table-responsive">
                     <table>
                         <thead>
                             <tr>
                                 <th>Symbol</th>
+                                <th>Side</th>
                                 <th>PnL ($)</th>
                                 <th>Qty</th>
                                 <th>Value ($)</th>
@@ -99,26 +142,25 @@ export default function RecentTrades() {
                             {extData.map((row, i) => (
                                 <tr key={i}>
                                     <td>{row.market}</td>
-                                    <td className={parseFloat(row.realised_pnl) > 0 ? "pnl-positive" : "pnl-negative"}>
-                                        {parseFloat(row.realised_pnl || 0).toFixed(4)}
+                                    <td>{row.side}</td>
+                                    <td className={parseFloat(row.net_pnl) > 0 ? "pnl-positive" : "pnl-negative"}>
+                                        {parseFloat(row.net_pnl || 0).toFixed(4)}
                                     </td>
-                                    <td>{parseFloat(row.size * (row.exit_price > 0 ? 2 : 1) || 0).toLocaleString()}</td>
+                                    <td>{parseFloat(row.qty_opened || 0) + parseFloat(row.qty_closed || 0)}</td>
                                     <td>
                                         {(
-                                            (parseFloat(row.size || 0) * parseFloat(row.open_price || 0)) +
-                                            (parseFloat(row.size || 0) * parseFloat(row.exit_price || 0))
+                                            (parseFloat(row.qty_opened || 0) * parseFloat(row.avg_entry_price || 0)) +
+                                            (parseFloat(row.qty_closed || 0) * parseFloat(row.avg_exit_price || 0))
                                         ).toFixed(2)}
                                     </td>
-
-                                    <td>{row.created_at}</td>
-                                    <td>{row.closed_at || "-"}</td>
+                                    <td>{row.entry_time}</td>
+                                    <td>{row.exit_time || "-"}</td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
             </div>
-
 
         </div>
     );

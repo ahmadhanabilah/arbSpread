@@ -71,11 +71,13 @@ export default function DailyStats() {
                     <thead>
                         <tr>
                             <th rowSpan="2" className="date-header">Date</th>
-                            <th colSpan="1" className="text-center extended-header">💎 Extended Stats</th>
+                            <th rowSpan="2" className="date-header">Net PnL ($)</th>
+                            <th colSpan="2" className="text-center extended-header">💎 Extended Stats</th>
                             <th colSpan="2" className="text-center lighter-header">🔥 Lighter Stats</th>
                         </tr>
                         <tr>
                             <th className="extended-header">PnL ($)</th>
+                            <th className="extended-header">Volume ($)</th>
                             <th className="lighter-header">PnL ($)</th>
                             <th className="lighter-header">Volume ($)</th>
                         </tr>
@@ -88,7 +90,9 @@ export default function DailyStats() {
                             return (
                                 <tr key={lig.date || i}>
                                     <td className="date-col">{lig.date || "N/A"}</td>
+                                    <td className="date-col">{ formatPnl(parseFloat(ext.daily_net_pnl) + parseFloat(lig.daily_pnl_usd)) || "N/A"}</td>
                                     <td className="ext-col">{formatPnl(ext.daily_net_pnl)}</td>
+                                    <td className="ext-col">{formatPnl(ext.daily_volume_usd)}</td>
                                     <td className="light-pnl-col">{formatPnl(lig.daily_pnl_usd)}</td>
                                     <td className="light-pnl-col">{formatValue(lig.daily_volume_usd)}</td>
                                 </tr>

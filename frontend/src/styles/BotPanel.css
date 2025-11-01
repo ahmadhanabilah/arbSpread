@@ -56,7 +56,8 @@ body {
     cursor: pointer;
     transition: background 0.2s;
     font-size: 14px;
-    height: 40px;
+    min-height: 40px;
+    min-width: 80px;
 }
 
 .btn:hover {
@@ -103,7 +104,7 @@ body {
     justify-content: center;
     flex-wrap: wrap;
     gap: 10px;
-    margin-bottom: 16px;
+    margin-bottom: 30px;
 }
 
 .table-container {
@@ -120,22 +121,16 @@ body {
 
 /* Force equal column widths */
 #symbolsTable {
-    width: 100%;
+    min-width: 1600px;
+    width: auto;
     border-collapse: collapse;
     table-layout: fixed;
     /* makes all columns equal width */
 }
 
-/* Make Action column wider */
-#symbolsTable th:last-child,
-#symbolsTable td:last-child {
-    width: 320px;
-    text-align: center;
-}
-
 #symbolsTable th,
 #symbolsTable td {
-    width: 9%;
+    width: 7%;
     height: 70px;
     text-align: center;
     padding: 8px 10px;
@@ -179,20 +174,6 @@ body {
 /* ✅ Responsive Adjustments */
 /* ===================================== */
 
-@media (max-width: 1024px) {
-
-    #symbolsTable th,
-    #symbolsTable td {
-        font-size: 13px;
-        padding: 6px;
-    }
-
-    #symbolsTable input {
-        width: 80%;
-        font-size: 13px;
-    }
-}
-
 @media (max-width: 768px) {
     .table-actions {
         flex-direction: column;
@@ -204,50 +185,5 @@ body {
         max-width: 240px;
     }
 
-    .table-container {
-        width: 100%;
-        overflow-x: auto;
-    }
 
-    #symbolsTable {
-        width: 300%;
-        font-size: 12px;
-    }
-
-    #symbolsTable input {
-        width: 70%;
-        font-size: 12px;
-    }
-}
-
-@media (max-width: 480px) {
-    .card {
-        padding: 16px;
-    }
-
-    .table-title {
-        font-size: 1.2rem;
-    }
-
-    .btn {
-        padding: 6px 10px;
-        font-size: 12px;
-    }
-
-    #symbolsTable th,
-    #symbolsTable td {
-        font-size: 12px;
-        padding: 4px;
-    }
-
-    #symbolsTable input {
-        width: 100%;
-        font-size: 12px;
-        padding: 4px;
-    }
-
-    /* Enable horizontal scroll */
-    .table-container {
-        overflow-x: auto;
-    }
 }

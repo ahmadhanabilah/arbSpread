@@ -1,3 +1,4 @@
+import json
 import os
 import asyncio
 import aiohttp
@@ -20,9 +21,9 @@ class LighterAPI:
         self.ws_client          = None
         self.config             = {
             "base_url"          : "https://mainnet.zklighter.elliot.ai",
-            "private_key"       : os.getenv("PRIVATE_KEY"),
-            "account_index"     : int(os.getenv("ACCOUNT_INDEX")),
-            "api_key_index"     : int(os.getenv("API_KEY_INDEX")),
+            "private_key"       : os.getenv("LIGHTER_API_PRIVATE_KEY"),
+            "account_index"     : int(os.getenv("LIGHTER_ACCOUNT_INDEX")),
+            "api_key_index"     : int(os.getenv("LIGHTER_API_KEY_INDEX")),
             "slippage"          : float(os.getenv("ALLOWED_SLIPPAGE")) / 100,
         }
         self.pair               = {
@@ -31,6 +32,7 @@ class LighterAPI:
             "size_decimals"     : None,
             "price_decimals"    : None,
             "min_size"          : None,
+            "min_value"         : None,
         }
         self.ob                 = {
             "bidPrice"          : 0.0,
@@ -45,6 +47,8 @@ class LighterAPI:
         }
         self.wsCallback         = None
         self.invValue           = None
+        self.currFundRate       = None
+        self._wsFundingTask     = None
 
     async def init(self):
         self.client             = lighter.SignerClient(
@@ -75,9 +79,61 @@ class LighterAPI:
             "size_decimals"             : int(match["size_decimals"]),
             "price_decimals"            : int(match["price_decimals"]),
             "min_size"                  : float(match["min_base_amount"]),
+            "min_value"                 : float(match["min_quote_amount"]),   
         }
                 
         logger.info(f"Lighter initPair Done, Pair Config\n{self.pair}")
+
+
+
+    async def startWsFunding(self):
+        market_id           = self.pair["market_id"]
+        if self._wsFundingTask and not self._wsFundingTask.done():
+            logger.info("wsFunding already running; skipping new start.")
+            return
+
+        logger.info("[Funding WS] startWsFunding() called")
+
+        async def _run():
+            url             = "wss://mainnet.zklighter.elliot.ai/stream"
+            sub_msg         = {"type": "subscribe","channel": f"market_stats/{market_id}"}
+
+            while True:
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.ws_connect(url, heartbeat=30) as ws:
+                            await ws.send_str(json.dumps(sub_msg))
+                            logger.info(f"[Funding WS] Subscribed to market_stats for market_id={market_id}")
+                            async for msg in ws:
+                                if msg.type == aiohttp.WSMsgType.TEXT:
+                                    try:
+                                        data            = json.loads(msg.data)
+                                        message_type    = data.get("type")
+                                        if message_type == "ping":
+                                            await ws.send_str(json.dumps({"type": "pong"}))
+                                            continue
+                                        if message_type in ["update/market_stats", "market_stats"]:
+                                            mstats      = data.get("market_stats") or {}
+                                            fr          = mstats.get("current_funding_rate") or mstats.get("funding_rate")
+                                            if fr is not None:
+                                                try:
+                                                    self.currFundRate = float(fr)
+                                                except (TypeError, ValueError):
+                                                    pass
+                                    except Exception as e:
+                                        logger.error(f"[Funding WS] parse error: {e}")
+                                elif msg.type == aiohttp.WSMsgType.ERROR:
+                                    raise RuntimeError(f"WebSocket error: {ws.exception()}")
+                            logger.warning("[Funding WS] socket closed; reconnecting...")
+
+                except Exception as e:
+                    self.currFundRate = None
+                    logger.error(f"[Funding WS] disconnected: {e} — retrying in 1s")
+                    await asyncio.sleep(1)
+
+        self._wsFundingTask = asyncio.create_task(_run())
+
+
 
     async def startWs(self, wsCallback):
         self.wsCallback                         = wsCallback
@@ -157,7 +213,6 @@ class LighterAPI:
         try:
             if isinstance(account, dict) and account.get("type") == "ping":
                 return
-            import json
             if isinstance(account, str):
                 account     = json.loads(account)
                 

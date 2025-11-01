@@ -204,7 +204,7 @@ async def auth_check():
 
 @app.get("/get_ext")
 async def get_ext():
-    return _read_csv_json("trades_ext.csv")
+    return _read_csv_json("trades_merged_ext.csv")
 
 @app.get("/get_lig")
 async def get_lig():
@@ -285,9 +285,10 @@ async def background_sync():
     await asyncio.gather(EXT.init(), LIG.init())
     while True:
         try:
-            await EXT.init_getTrades()
+            await EXT.getTrades()
+            EXT.mergeTrades()
             EXT.calculateDailyPnL()
-            await LIG.init_getTrades()
+
             await LIG.getTrades()
             LIG.mergeTrades()
             LIG.calculateDailyPnL()

@@ -57,259 +57,93 @@ class ExtendedAPI:
 
         self.allSymbols = [market["name"] for market in data["data"] if market.get("active")]
         
-    # async def getTrades(self):
-    #     try:
-    #         resp                    = await self.client.account.get_trades(market_names=self.allSymbols)
-    #         logger.info(f"Fetched {len(resp.data)} trades")
-    #         await self.saveTradesToCsv(resp.data)
-
-    #     except Exception as e:
-    #         logger.error(f"⚠️ Error getTrades: {e}")
-        
-
     async def getTrades(self):
-        """
-        Fetch latest position history (instead of trades).
-        If trades_ext.csv exists, append only newer positions.
-        """
-        try:
-            resp = await self.client.account.get_positions_history(
-                market_names=self.allSymbols,
-                limit=200
-            )
-            if not resp or not resp.data:
-                logger.info("No positions found.")
-                return
-
-            logger.info(f"Fetched {len(resp.data)} positions.")
-            await self.savePositionsToCsv(resp.data)
-
-        except Exception as e:
-            logger.error(f"⚠️ Error getTrades (positions): {e}")
-            traceback.print_exc()
-
-    async def init_getTrades(self, page_size: int = 300, max_retries: int = 5):
-        try:
-            filename        = "trades_ext.csv"
-            fieldnames      = [
-                "id", "account_id", "market", "side", "leverage",
-                "size", "open_price", "exit_price", "exit_type",
-                "realised_pnl", "created_time", "closed_time", "created_at", "closed_at"
-            ]
-
-            with open(filename, "w", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                writer.writeheader()
-
-            total_fetched   = 0
-            cursor          = None
-            all_positions   = []
-
-            logger.info("🚀 Starting full Extended positions sync...")
-
-            while True:
-                for attempt in range(max_retries):
-                    try:
-                        resp                = await self.client.account.get_positions_history(
-                            market_names    = self.allSymbols,
-                            cursor          = cursor,
-                            limit           = page_size
-                        )
-                        break  # ✅ success
-                    except Exception as e:
-                        wait_time           = 2 ** attempt
-                        logger.warning      (f"⚠️ Request failed ({type(e).__name__}: {e}). Retrying in {wait_time}s...")
-                        await asyncio.sleep(wait_time)
-                else:
-                    logger.error("❌ Max retries reached. Aborting pagination.")
-                    break
-
-                if not resp or not resp.data:
-                    logger.info("✅ No more positions found.")
-                    break
-
-                positions       = resp.data
-                total_fetched   += len(positions)
-                all_positions.extend(positions)
-
-                logger.info(f"📦 Fetched {len(positions)} positions (total {total_fetched}).")
-
-                # Handle pagination
-                next_cursor = None
-                if hasattr(resp, "pagination") and resp.pagination:
-                    next_cursor = getattr(resp.pagination, "cursor", None)
-                elif isinstance(resp, dict):
-                    next_cursor = resp.get("pagination", {}).get("cursor")
-
-                if not next_cursor:
-                    break
-                cursor          = next_cursor
-
-                await asyncio.sleep(1)
-
-            # Write all positions to CSV
-            with open(filename, "w", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                writer.writeheader()
-                for p in all_positions:
-                    created_readable    = (datetime.fromtimestamp(p.created_time / 1000).strftime("%Y-%m-%d %H:%M:%S"))
-                    closed_readable     = (datetime.fromtimestamp(p.closed_time / 1000).strftime("%Y-%m-%d %H:%M:%S") if isinstance(p.closed_time, (int, float)) and p.closed_time > 0 else "")
-                    writer.writerow({
-                        "id"            : p.id,
-                        "account_id"    : p.account_id,
-                        "market"        : p.market,
-                        "side"          : p.side,
-                        "leverage"      : p.leverage,
-                        "size"          : p.max_position_size,
-                        "open_price"    : p.open_price,
-                        "exit_price"    : p.exit_price,
-                        "exit_type"     : getattr(p, "exit_type", ""),
-                        "realised_pnl"  : p.realised_pnl,
-                        "created_time"  : p.created_time,
-                        "closed_time"   : p.closed_time,
-                        "created_at"    : created_readable,
-                        "closed_at"     : closed_readable
-                    })
-
-            logger.info(f"✅ Saved {total_fetched} total positions to {filename}")
-            print(f"✅ Saved {total_fetched} total positions to {filename}")
-
-        except Exception as e:
-            logger.error(f"⚠️ Fatal error in init_getTrades: {e}", exc_info=True)
-            print(f"⚠️ Fatal error in init_getTrades: {e}")
-
-
-    async def savePositionsToCsv(self, positions):
-        try:
-            filename            = "trades_ext.csv"
-            fieldnames          = [
-                "id", "account_id", "market", "side", "leverage",
-                "size", "open_price", "exit_price", "exit_type",
-                "realised_pnl", "created_time", "closed_time", "created_at", "closed_at"
-            ]
-
-            existing_rows       = []
-            newest_timestamp    = 0
-            if os.path.exists(filename):
-                with open(filename, "r", newline="", encoding="utf-8") as f:
-                    reader = csv.DictReader(f)
-                    existing_rows = list(reader)
-                    if existing_rows:
-                        newest_timestamp = max(
-                            int(row["created_time"]) for row in existing_rows if row["created_time"].isdigit()
-                        )
-
-            new_positions = [p for p in positions if p.created_time > newest_timestamp]
-            if not new_positions:
-                logger.info("No new positions to save.")
-                return
-
-            new_rows = []
-            for p in new_positions:
-                created_readable = datetime.fromtimestamp(p.created_time / 1000).strftime("%Y-%m-%d %H:%M:%S")
-                closed_readable = (
-                    datetime.fromtimestamp(p.closed_time / 1000).strftime("%Y-%m-%d %H:%M:%S")
-                    if isinstance(p.closed_time, (int, float)) and p.closed_time > 0 else ""
-                )
-                new_rows.append({
-                        "id"            : p.id,
-                        "account_id"    : p.account_id,
-                        "market"        : p.market,
-                        "side"          : p.side,
-                        "leverage"      : p.leverage,
-                        "size"          : p.max_position_size,
-                        "open_price"    : p.open_price,
-                        "exit_price"    : p.exit_price,
-                        "exit_type"     : getattr(p, "exit_type", ""),
-                        "realised_pnl"  : p.realised_pnl,
-                        "created_time"  : p.created_time,
-                        "closed_time"   : p.closed_time,
-                        "created_at"    : created_readable,
-                        "closed_at"     : closed_readable
-                    })
-
-            all_rows                    = existing_rows + new_rows
-            all_rows.sort(key=lambda x: int(x["created_time"]), reverse=True)
-
-            with open(filename, "w", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                writer.writeheader()
-                writer.writerows(all_rows)
-
-            logger.info(f"✅ Added {len(new_positions)} new positions to {filename}.")
-
-        except Exception as e:
-            logger.error(f"⚠️ Error saving positions to CSV: {e}")
-
-
-
-
-
-
-
-
-
-    async def saveTradesToCsv(self, trades):
         try:
             filename = "trades_ext.csv"
-            fieldnames = [
-                "id", "account_id", "market", "order_id", "side", "price",
-                "qty", "value", "fee", "is_taker", "trade_type",
-                "created_time", "created_at"
-            ]
+            limit = 300
+            cursor = None
+            all_trades = []
 
-            # Step 1: Load existing trades
-            existing_rows = []
+            # --- Step 1: Determine latest timestamp ---
             newest_timestamp = 0
+            existing_fieldnames = None
             if os.path.exists(filename):
-                with open(filename, mode="r", newline="", encoding="utf-8") as f:
+                with open(filename, newline="", encoding="utf-8") as f:
                     reader = csv.DictReader(f)
-                    existing_rows = list(reader)
-                    if existing_rows:
-                        # Find newest created_time from existing rows
-                        newest_timestamp = max(int(row["created_time"]) for row in existing_rows if row["created_time"].isdigit())
+                    existing_fieldnames = reader.fieldnames
+                    for row in reader:
+                        ts = row.get("created_time")
+                        if ts and str(ts).isdigit():
+                            newest_timestamp = max(newest_timestamp, int(ts))
+                logger.info(f"[ExtendedAPI] Found existing file, newest timestamp: {newest_timestamp}")
+            else:
+                logger.info("[ExtendedAPI] No existing file found → fetching all trades")
 
-            # Step 2: Keep only trades newer than newest_timestamp
-            new_trades = [t for t in trades if t.created_time > newest_timestamp]
+            # --- Step 2: Pagination loop ---
+            while True:
+                resp = await self.client.account.get_trades(
+                    market_names=[self.allSymbols],
+                    cursor=cursor,
+                    limit=limit,
+                )
 
-            if not new_trades:
-                logging.info("No new trades to save (all older than newest on file).")
+                if getattr(resp, "error", None):
+                    logger.error(f"[ExtendedAPI] get_trades() error: {resp.error}")
+                    break
+
+                trades = getattr(resp, "data", [])
+                if not trades:
+                    break
+
+                # keep only new trades if we already have data
+                if newest_timestamp > 0:
+                    trades = [t for t in trades if getattr(t, "created_time", 0) > newest_timestamp]
+
+                if not trades:
+                    logger.info("[ExtendedAPI] No newer trades found; stopping fetch.")
+                    break
+
+                all_trades.extend(trades)
+                logger.info(f"[ExtendedAPI] Retrieved {len(trades)} trades (total {len(all_trades)})")
+
+                # --- pagination ---
+                cursor = None
+                if hasattr(resp, "pagination") and resp.pagination:
+                    cursor = getattr(resp.pagination, "next", None)
+                if not cursor and len(trades) == limit:
+                    last = trades[-1]
+                    cursor = getattr(last, "id", None)
+
+                if not cursor:
+                    break
+
+                await asyncio.sleep(0.2)
+
+            # --- Step 3: Save result ---
+            if not all_trades:
+                logger.info("[ExtendedAPI] No new trades to save.")
                 return
 
-            # Step 3: Convert new trades to dicts (with readable timestamp)
-            new_rows = []
-            for t in new_trades:
-                readable_time = datetime.fromtimestamp(t.created_time / 1000).strftime("%Y-%m-%d %H:%M:%S")
-                new_rows.append({
-                    "id": t.id,
-                    "account_id": t.account_id,
-                    "market": t.market,
-                    "order_id": t.order_id,
-                    "side": t.side,
-                    "price": str(t.price),
-                    "qty": str(t.qty),
-                    "value": str(t.value),
-                    "fee": str(t.fee),
-                    "is_taker": t.is_taker,
-                    "trade_type": t.trade_type,
-                    "created_time": t.created_time,
-                    "created_at": readable_time
-                })
+            trade_dicts = [t.__dict__ for t in all_trades]
+            fieldnames = (
+                existing_fieldnames
+                or sorted(set().union(*(d.keys() for d in trade_dicts)))
+            )
 
-            # Step 4: Combine and sort by created_time desc
-            all_rows = existing_rows + new_rows
-            all_rows.sort(key=lambda x: int(x["created_time"]), reverse=True)
+            file_exists = os.path.exists(filename)
+            mode = "a" if file_exists else "w"
 
-            # Step 5: Rewrite file
-            with open(filename, mode="w", newline="", encoding="utf-8") as f:
+            with open(filename, mode, newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
-                writer.writeheader()
-                writer.writerows(all_rows)
+                if not file_exists:
+                    writer.writeheader()
+                writer.writerows(trade_dicts)
 
-            logging.info(f"✅ Added {len(new_trades)} new trades after {newest_timestamp}, sorted by created_time desc")
+            logger.info(f"[ExtendedAPI] ✅ Saved {len(all_trades)} new trades → {filename}")
 
         except Exception as e:
-            logging.error(f"⚠️ Error saving to CSV: {e}")
+            logger.error(f"[ExtendedAPI] getTrades() failed: {e}")
+
 
     def mergeTrades(self):
         input_file  = "trades_ext.csv"
@@ -325,7 +159,18 @@ class ExtendedAPI:
                 row["qty"] = float(row["qty"])
                 row["value"] = float(row["value"])
                 row["fee"] = float(row["fee"]) if row["fee"] else 0.0
-                row["created_time"] = datetime.strptime(row["created_at"], "%Y-%m-%d %H:%M:%S")
+
+                # ✅ created_time is timestamp (ms → datetime)
+                if row["created_time"].isdigit():
+                    ts = int(row["created_time"])
+                    if ts > 1e12:  # milliseconds
+                        row["created_time"] = datetime.fromtimestamp(ts / 1000)
+                    else:  # seconds
+                        row["created_time"] = datetime.fromtimestamp(ts)
+                else:
+                    # fallback if it's already a string (YYYY-MM-DD HH:MM:SS)
+                    row["created_time"] = datetime.strptime(row["created_time"], "%Y-%m-%d %H:%M:%S")
+
                 trades_by_market[row["market"]].append(row)
 
         merged = []
@@ -449,8 +294,9 @@ class ExtendedAPI:
 
         print(f"✅ Merged {len(merged)} trades saved to {output_file}")
 
+
     def calculateDailyPnL(self):
-        input_file      = "trades_ext.csv"
+        input_file      = "trades_merged_ext.csv"
         output_file     = "trades_daily_pnl_ext.csv"
 
         if not os.path.exists(input_file):
@@ -463,16 +309,15 @@ class ExtendedAPI:
         with open(input_file, newline="") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                # Skip rows without realised_pnl or closed_at (open trades)
-                if not row["realised_pnl"] or not row["closed_at"]:
+                if not row["net_pnl"] or not row["exit_time"]:
                     continue
 
                 try:
-                    date_str    = row["closed_at"].split(" ")[0]  # YYYY-MM-DD
-                    pnl         = float(row["realised_pnl"])
+                    date_str    = row["exit_time"].split(" ")[0]  # YYYY-MM-DD
+                    pnl         = float(row["net_pnl"])
                     
-                    entryvolume = float(row.get("size", 0)) * float(row.get("open_price", 0))  # fallback to 0 if missing
-                    exitvolume  = float(row.get("size", 0)) * float(row.get("exit_price", 0))  # fallback to 0 if missing
+                    entryvolume = float(row.get("qty_opened", 0)) * float(row.get("avg_entry_price", 0))  # fallback to 0 if missing
+                    exitvolume  = float(row.get("qty_closed", 0)) * float(row.get("avg_exit_price", 0))  # fallback to 0 if missing
 
                     daily_pnl[date_str]     += pnl
                     daily_volume[date_str]  += entryvolume + exitvolume

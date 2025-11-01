@@ -5,6 +5,7 @@ import LogViewer from "./LogViewer";
 
 const API_BASE = `${window.location.protocol}//${window.location.hostname}:8000`;
 
+
 export default function BotPanel() {
     const [symbols, setSymbols] = useState([]);
     const [running, setRunning] = useState([]);
@@ -13,6 +14,14 @@ export default function BotPanel() {
     const [loggedIn, setLoggedIn] = useState(user && pass);
     const [config, setConfig] = useState({ symbols: [] });
     const [loading, setLoading] = useState(false);
+    const [notification, setNotification] = useState(null);
+
+    const showNotification = (message, type = "info", timeout = 2500) => {
+        setNotification({ message, type });
+        setTimeout(() => setNotification(null), timeout);
+    };
+
+    const closeNotification = () => setNotification(null);
 
     // 👇 Live popup state
     const [showLive, setShowLive] = useState(false);
@@ -96,17 +105,43 @@ export default function BotPanel() {
     }
 
     async function saveConfig() {
-        const payload = { data: { symbols } };
+        // ✅ Before saving, normalize numeric fields
+        const numericKeys = [
+            "MIN_SPREAD",
+            "SPREAD_TP",
+            "MIN_TRADE_VALUE",
+            "MAX_TRADE_VALUE_ENTRY",
+            "MAX_TRADE_VALUE_EXIT",
+            "PERC_OF_OB",
+            "MAX_INVENTORY_VALUE",
+            "CHECK_SPREAD_INTERVAL",
+        ];
+
+        const cleanedSymbols = symbols.map((sym) => {
+            const cleaned = { ...sym };
+            for (const key of numericKeys) {
+                let v = cleaned[key];
+                if (typeof v === "string") v = v.replace(",", ".");
+                const num = parseFloat(v);
+                if (!isNaN(num)) cleaned[key] = num;
+            }
+            return cleaned;
+        });
+
+        const payload = { data: { symbols: cleanedSymbols } };
+
         const res = await fetchAuth(`${API_BASE}/api/config`, {
             method: "PUT",
             body: JSON.stringify(payload),
         });
+
         if (res.ok) {
-            alert("✅ Config saved!");
+            showNotification("✅ Config saved!", "success");
             loadSymbols();
         } else {
-            alert("❌ Failed to save config");
+            showNotification("❌ Failed to save config", "error");
         }
+
     }
 
     async function startBot(symbol) {
@@ -126,12 +161,12 @@ export default function BotPanel() {
                 symbol: "NEW",
                 MIN_SPREAD: 0.3,
                 SPREAD_TP: 0.2,
-                MIN_TRADE_VALUE: 50,
-                MAX_TRADE_VALUE: 500,
+                MIN_TRADE_VALUE: 20,
+                MAX_TRADE_VALUE_ENTRY: 30,
+                MAX_TRADE_VALUE_EXIT: 30,
                 MAX_INVENTORY_VALUE: 1000,
-                PERC_OF_OB: 50,
+                PERC_OF_OB: 20,
                 CHECK_SPREAD_INTERVAL: 1,
-                SHOW_LIVE_SPREAD: true,
             },
         ]);
     }
@@ -147,6 +182,36 @@ export default function BotPanel() {
         updated[i][key] = val;
         setSymbols(updated);
     }
+
+    function handleNumericChange(i, key, val) {
+        // Always treat as string for controlled input
+        if (typeof val !== "string") val = String(val ?? "");
+
+        // Convert commas to dots for internal consistency
+        val = val.replace(",", ".");
+
+        // Allow digits, one dot, and one leading minus
+        val = val.replace(/[^0-9.\-]/g, "");
+
+        // Only one dot allowed
+        const dotCount = (val.match(/\./g) || []).length;
+        if (dotCount > 1) {
+            // Keep first dot, remove later ones
+            const firstDot = val.indexOf(".");
+            val = val.slice(0, firstDot + 1) + val.slice(firstDot + 1).replace(/\./g, "");
+        }
+
+        // Only one minus sign at the start
+        if (val.includes("-") && !val.startsWith("-")) {
+            val = "-" + val.replace(/-/g, "");
+        }
+
+        // ✅ Allow partial inputs like "-", "1.", or "-0."
+        updateValue(i, key, val);
+    }
+
+
+
 
     useEffect(() => {
         if (loggedIn) loadSymbols();
@@ -200,12 +265,14 @@ export default function BotPanel() {
                             <tr>
                                 <th>Symbol</th>
                                 <th>Status</th>
-                                <th>MIN SPREAD</th>
-                                <th>SPREAD TP</th>
+                                <th>TRADES INTERVAL</th>
+                                <th>MIN SPREAD ENTRY</th>
+                                <th>MIN SPREAD EXIT DIFF</th>
                                 <th>MIN TRADE VALUE</th>
-                                <th>MAX TRADE VALUE</th>
-                                <th>MAX INVENTORY VALUE</th>
+                                <th>MAX TRADE VALUE ENTRY</th>
+                                <th>MAX TRADE VALUE EXIT</th>
                                 <th>PERC OF OB</th>
+                                <th>MAX INVENTORY VALUE</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -231,55 +298,73 @@ export default function BotPanel() {
                                             <td>{isRunning ? "🟢" : "⚫"}</td>
                                             <td>
                                                 <input
-                                                    type="number"
+                                                    type="text"
+                                                    value={row.CHECK_SPREAD_INTERVAL}
+                                                    onChange={(e) =>
+                                                        handleNumericChange(i, "CHECK_SPREAD_INTERVAL", (e.target.value))
+                                                    }
+                                                />
+                                            </td>
+                                            <td>
+                                                <input
+                                                    type="text"
                                                     value={row.MIN_SPREAD}
                                                     onChange={(e) =>
-                                                        updateValue(i, "MIN_SPREAD", parseFloat(e.target.value))
+                                                        handleNumericChange(i, "MIN_SPREAD", (e.target.value))
                                                     }
                                                 />
                                             </td>
                                             <td>
                                                 <input
-                                                    type="number"
+                                                    type="text"
                                                     value={row.SPREAD_TP}
                                                     onChange={(e) =>
-                                                        updateValue(i, "SPREAD_TP", parseFloat(e.target.value))
+                                                        handleNumericChange(i, "SPREAD_TP", (e.target.value))
                                                     }
                                                 />
                                             </td>
                                             <td>
                                                 <input
-                                                    type="number"
+                                                    type="text"
                                                     value={row.MIN_TRADE_VALUE}
                                                     onChange={(e) =>
-                                                        updateValue(i, "MIN_TRADE_VALUE", parseFloat(e.target.value))
+                                                        handleNumericChange(i, "MIN_TRADE_VALUE", (e.target.value))
                                                     }
                                                 />
                                             </td>
                                             <td>
                                                 <input
-                                                    type="number"
-                                                    value={row.MAX_TRADE_VALUE}
+                                                    type="text"
+                                                    value={row.MAX_TRADE_VALUE_ENTRY}
                                                     onChange={(e) =>
-                                                        updateValue(i, "MAX_TRADE_VALUE", parseFloat(e.target.value))
+                                                        handleNumericChange(i, "MAX_TRADE_VALUE_ENTRY", (e.target.value))
                                                     }
                                                 />
                                             </td>
                                             <td>
                                                 <input
-                                                    type="number"
-                                                    value={row.MAX_INVENTORY_VALUE}
+                                                    type="text"
+                                                    value={row.MAX_TRADE_VALUE_EXIT}
                                                     onChange={(e) =>
-                                                        updateValue(i, "MAX_INVENTORY_VALUE", parseFloat(e.target.value))
+                                                        handleNumericChange(i, "MAX_TRADE_VALUE_EXIT", (e.target.value))
                                                     }
                                                 />
                                             </td>
                                             <td>
                                                 <input
-                                                    type="number"
+                                                    type="text"
                                                     value={row.PERC_OF_OB}
                                                     onChange={(e) =>
-                                                        updateValue(i, "PERC_OF_OB", parseFloat(e.target.value))
+                                                        handleNumericChange(i, "PERC_OF_OB", (e.target.value))
+                                                    }
+                                                />
+                                            </td>
+                                            <td>
+                                                <input
+                                                    type="text"
+                                                    value={row.MAX_INVENTORY_VALUE}
+                                                    onChange={(e) =>
+                                                        handleNumericChange(i, "MAX_INVENTORY_VALUE", (e.target.value))
                                                     }
                                                 />
                                             </td>
@@ -320,9 +405,6 @@ export default function BotPanel() {
                                                     >
                                                         📜 Logs
                                                     </button>
-
-
-
                                                 </div>
                                             </td>
                                         </tr>
@@ -433,6 +515,42 @@ export default function BotPanel() {
                 </div>
             )}
 
+            {/* 👇 Notification popup */}
+            {notification && (
+                <div
+                    className="modal-overlay"
+                    onClick={closeNotification}
+                    style={{
+                        position: "fixed",
+                        bottom: "30px",
+                        right: "30px",
+                        color: "#fff",
+                        zIndex: 9999,
+                        cursor: "pointer",
+                    }}
+                >
+                    <div
+                        className="modal-content"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            background:
+                                notification.type === "error"
+                                    ? "#ff0000ff"
+                                    : "#ffffffff",
+                            color: "#000000ff",
+                            padding: "16px 24px",
+                            borderRadius: "8px",
+                            boxShadow:
+                                "0 4px 8px rgba(0, 0, 0, 0.2)",
+                            textAlign: "center",
+                            minWidth: "220px",
+                            fontSize: "1rem",
+                        }}
+                    >
+                        {notification.message}
+                    </div>
+                </div>
+            )}
 
 
         </div>

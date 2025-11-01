@@ -48,14 +48,16 @@
     background-color: #ffffff;
     border-radius: 12px;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
-        0 4px 6px -2px rgba(0, 0, 0, 0.05);
+                0 4px 6px -2px rgba(0, 0, 0, 0.05);
 
-    /* 👇 Scrollable area */
-    max-height: 480px;
+    /* 👇 Fill remaining height and scroll internally */
+    flex: 1;
+    max-height: calc(80vh - 220px); /* adjust based on your header/buttons height */
     overflow-y: auto;
     overflow-x: auto;
     position: relative;
 }
+
 
 @media (max-width: 640px) {
     .table-container {
