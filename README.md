@@ -78,14 +78,11 @@ npm run dev -- --host --port 3000
 screen -S web-backend
 ```
 
-```bash
-cd backend
-```
-
 rename .env_example to .env and fill credentials
 
 ```bash
 source .venv/bin/activate
+cd backend
 python3 unified_backend.py
 ```
 
