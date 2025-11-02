@@ -104,3 +104,5 @@ cd /root/arbSpread
 git fetch origin
 git reset --hard origin/main
 ```
+
+Done

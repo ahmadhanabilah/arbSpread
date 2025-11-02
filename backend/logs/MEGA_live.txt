@@ -2,12 +2,12 @@
 MEGA
 ---
 Orderbook Data
-SpreadLE: [TT:-0.77%] [TM:-0.62%] [MT:-0.56%]
-SpreadEL: [TT:0.42%] [TM:0.63%] [MT:0.56%]
+SpreadLE: [TT:-1.00%] [TM:-0.86%] [MT:-0.54%]
+SpreadEL: [TT:0.39%] [TM:0.86%] [MT:0.54%]
 ---
 Funding Rate
-Net LE  : 0.027113%
-Net EL  : -0.027113%
+Net LE  : 0.020813%
+Net EL  : -0.020813%
 ---
 Inventory
 Δ       : 0.56% => Bot is Looking For 0.60% to Entry
