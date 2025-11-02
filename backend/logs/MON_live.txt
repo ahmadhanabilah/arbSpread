@@ -2,18 +2,18 @@
 MON
 ---
 Orderbook Data
-SpreadLE: [TT:0.97%] [TM:0.99%] [MT:1.22%]
-SpreadEL: [TT:-1.24%] [TM:-0.98%] [MT:-1.23%]
+SpreadLE: [TT:0.87%] [TM:0.90%] [MT:1.17%]
+SpreadEL: [TT:-1.19%] [TM:-0.89%] [MT:-1.18%]
 ---
 Funding Rate
 Net LE  : 0.017212%
 Net EL  : -0.017212%
 ---
 Inventory
-Δ       : 0.84% => Bot is Looking For 1.00% to Entry
+Δ       : 0.84% => Bot is Looking For 2.00% to Entry
 Dir     : LE
-qtyL    : 43560.0 @ 0.04303 / $1874.39
-qtyE    : -43560.0 @ 0.04339 / $-1890.07
+qtyL    : 48280.0 @ 0.04297 / $2074.59
+qtyE    : -48280.0 @ 0.04333 / $-2091.97
 ---
 Config
 TRADES_INTERVAL       : 1s
