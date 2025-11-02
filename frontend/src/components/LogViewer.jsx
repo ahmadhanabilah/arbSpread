@@ -46,7 +46,8 @@ export default function LogViewer({ symbol }) {
         borderRadius: "8px",
         height: "400px",
         overflowY: "auto",
-        whiteSpace: "pre-wrap",
+        whiteSpace: "pre",
+        lineHeight: "1.4em",
       }}
     >
       {logs}

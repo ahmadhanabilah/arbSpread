@@ -31,13 +31,13 @@ export default function LiveTicker({ symbol }) {
     <div
       style={{
         background: "#0d1117",
-        color: "#00ff99",
+        color: "#e5e7eb",
         fontFamily: "monospace",
         padding: "12px",
         borderRadius: "8px",
-        height: "300px",
+        height: "400px",
         overflowY: "auto",
-        whiteSpace: "pre-wrap", // 👈 important
+        whiteSpace: "pre", 
         lineHeight: "1.4em",
       }}
     >

@@ -2,36 +2,55 @@
   "symbols": [
     {
       "symbol": "MEGA",
-      "MIN_SPREAD": 0.8,
+      "TRADES_INTERVAL": 1,
+      "MIN_SPREAD": 0.3,
+      "SPREAD_MULTIPLIER": 2,
       "SPREAD_TP": 0.15,
       "MIN_TRADE_VALUE": 20,
-      "MAX_TRADE_VALUE_ENTRY": 30,
+      "MAX_TRADE_VALUE_ENTRY": 200,
       "MAX_TRADE_VALUE_EXIT": 500,
-      "MAX_INVENTORY_VALUE": 2000,
-      "PERC_OF_OB": 50,
-      "CHECK_SPREAD_INTERVAL": 1
+      "MAX_INVENTORY_VALUE": 5000,
+      "INV_LEVEL_TO_MULT": 5,
+      "PERC_OF_OB": 30
     },
     {
       "symbol": "MON",
-      "MIN_SPREAD": 3.5,
+      "TRADES_INTERVAL": 1,
+      "MIN_SPREAD": 0.5,
+      "SPREAD_MULTIPLIER": 2,
       "SPREAD_TP": 0.15,
       "MIN_TRADE_VALUE": 20,
-      "MAX_TRADE_VALUE_ENTRY": 30,
-      "MAX_TRADE_VALUE_EXIT": 50,
-      "MAX_INVENTORY_VALUE": 10000,
-      "PERC_OF_OB": 50,
-      "CHECK_SPREAD_INTERVAL": 1
+      "MAX_TRADE_VALUE_ENTRY": 200,
+      "MAX_TRADE_VALUE_EXIT": 500,
+      "MAX_INVENTORY_VALUE": 5000,
+      "INV_LEVEL_TO_MULT": 5,
+      "PERC_OF_OB": 30
     },
     {
-      "symbol": "BTC",
-      "MIN_SPREAD": -0.1,
-      "SPREAD_TP": -1,
+      "symbol": "ZEC",
+      "TRADES_INTERVAL": 1,
+      "MIN_SPREAD": 0.3,
+      "SPREAD_MULTIPLIER": 1.1,
+      "SPREAD_TP": 0.15,
       "MIN_TRADE_VALUE": 20,
-      "MAX_TRADE_VALUE_ENTRY": 30,
-      "MAX_TRADE_VALUE_EXIT": 35,
-      "MAX_INVENTORY_VALUE": 30,
-      "PERC_OF_OB": 50,
-      "CHECK_SPREAD_INTERVAL": 1
+      "MAX_TRADE_VALUE_ENTRY": 200,
+      "MAX_TRADE_VALUE_EXIT": 200,
+      "MAX_INVENTORY_VALUE": 1000,
+      "INV_LEVEL_TO_MULT": 5,
+      "PERC_OF_OB": 30
+    },
+    {
+      "symbol": "NEW",
+      "MIN_SPREAD": 0.3,
+      "SPREAD_MULTIPLIER": 1.1,
+      "SPREAD_TP": 0.2,
+      "MIN_TRADE_VALUE": 100,
+      "MAX_TRADE_VALUE_ENTRY": 200,
+      "MAX_TRADE_VALUE_EXIT": 200,
+      "MAX_INVENTORY_VALUE": 1000,
+      "PERC_OF_OB": 30,
+      "INV_LEVEL_TO_MULT": 5,
+      "TRADES_INTERVAL": 1
     }
   ]
 }

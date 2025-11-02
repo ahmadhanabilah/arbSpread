@@ -1,0 +1,27 @@
+---
+ZEC
+---
+Orderbook Data
+SpreadLE: [TT:0.30%] [TM:0.43%] [MT:0.35%]
+SpreadEL: [TT:-0.48%] [TM:-0.43%] [MT:-0.35%]
+---
+Funding Rate
+Net LE  : 0.003372%
+Net EL  : -0.003372%
+---
+Inventory
+Δ       : 0.00% => Bot is Looking For 0.30% to Entry
+Dir     : 
+qtyL    : 0.0 @ 0.0 / $0.00
+qtyE    : 0.0 @ 0.0 / $0.00
+---
+Config
+TRADES_INTERVAL       : 1s
+MIN_SPREAD            : 0.3%
+SPREAD_MULTIPLIER     : 1.1
+SPREAD_TP             : 0.15%
+MIN_TRADE_VALUE       : $20
+MAX_TRADE_VALUE_ENTRY : $100
+MAX_TRADE_VALUE_EXIT  : $1000
+MAX_INVENTORY_VALUE   : $1000
+PERC_OF_OB            : 50.0%

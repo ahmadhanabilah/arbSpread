@@ -1,26 +1,28 @@
 ---
 MON
 ---
-Orderbook Data (Based on Taker Prices)
-SpreadLE: 1.66%
-SpreadEL: -1.72%
+Orderbook Data
+SpreadLE: [TT:0.81%] [TM:0.83%] [MT:1.05%]
+SpreadEL: [TT:-1.08%] [TM:-0.82%] [MT:-1.06%]
 ---
 Funding Rate
-Net LE  : -0.001296%
-Net EL  : 0.001296%
+Net LE  : 0.029183%
+Net EL  : -0.029183%
 ---
 Inventory
-Δ       : 1.12
+Δ       : 0.96% => Bot is Looking For 1.00% to Entry
 Dir     : LE
-qtyL    : 146270.0 @ 0.04365 / $6384.69
-qtyE    : -146270.0 @ 0.04414 / $-6456.36
+qtyL    : 29550.0 @ 0.04381 / $1294.59
+qtyE    : -29550.0 @ 0.04423 / $-1307.00
 ---
 Config
-MIN_SPREAD: 3.5%
-SPREAD_TP : 0.15%
+TRADES_INTERVAL       : 1s
+MIN_SPREAD            : 0.5%
+SPREAD_MULTIPLIER     : 2
+SPREAD_TP             : 0.15%
 MIN_TRADE_VALUE       : $20
-MAX_TRADE_VALUE_ENTRY : $30
-MAX_TRADE_VALUE_EXIT  : $50
-MAX_INVENTORY_VALUE   : $10000
-PERC_OF_OB            : 50.0%
-CHECK_SPREAD_INTERVAL : 1s
+MAX_TRADE_VALUE_ENTRY : $200
+MAX_TRADE_VALUE_EXIT  : $500
+MAX_INVENTORY_VALUE   : $5000
+INV_LEVEL_TO_MULT     : 5
+PERC_OF_OB            : 30.0%

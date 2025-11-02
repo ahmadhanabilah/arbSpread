@@ -107,14 +107,16 @@ export default function BotPanel() {
     async function saveConfig() {
         // ✅ Before saving, normalize numeric fields
         const numericKeys = [
+            "TRADES_INTERVAL",
             "MIN_SPREAD",
+            "SPREAD_MULTIPLIER",
             "SPREAD_TP",
             "MIN_TRADE_VALUE",
             "MAX_TRADE_VALUE_ENTRY",
             "MAX_TRADE_VALUE_EXIT",
             "PERC_OF_OB",
+            "INV_LEVEL_TO_MULT",
             "MAX_INVENTORY_VALUE",
-            "CHECK_SPREAD_INTERVAL",
         ];
 
         const cleanedSymbols = symbols.map((sym) => {
@@ -158,15 +160,17 @@ export default function BotPanel() {
         setSymbols([
             ...symbols,
             {
-                symbol: "NEW",
-                MIN_SPREAD: 0.3,
-                SPREAD_TP: 0.2,
-                MIN_TRADE_VALUE: 20,
-                MAX_TRADE_VALUE_ENTRY: 30,
-                MAX_TRADE_VALUE_EXIT: 30,
-                MAX_INVENTORY_VALUE: 1000,
-                PERC_OF_OB: 20,
-                CHECK_SPREAD_INTERVAL: 1,
+                symbol                  : "NEW",
+                MIN_SPREAD              : 0.3,
+                SPREAD_MULTIPLIER       : 1.1,
+                SPREAD_TP               : 0.2,
+                MIN_TRADE_VALUE         : 100,
+                MAX_TRADE_VALUE_ENTRY   : 200,
+                MAX_TRADE_VALUE_EXIT    : 200,
+                MAX_INVENTORY_VALUE     : 1000,
+                PERC_OF_OB              : 30,
+                INV_LEVEL_TO_MULT       : 5,
+                TRADES_INTERVAL         : 1,
             },
         ]);
     }
@@ -267,12 +271,14 @@ export default function BotPanel() {
                                 <th>Status</th>
                                 <th>TRADES INTERVAL</th>
                                 <th>MIN SPREAD ENTRY</th>
+                                <th>SPREAD MULTIPLIER</th>
                                 <th>MIN SPREAD EXIT DIFF</th>
                                 <th>MIN TRADE VALUE</th>
                                 <th>MAX TRADE VALUE ENTRY</th>
                                 <th>MAX TRADE VALUE EXIT</th>
                                 <th>PERC OF OB</th>
                                 <th>MAX INVENTORY VALUE</th>
+                                <th>INV LEVEL TO MULT SPREAD</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -299,9 +305,9 @@ export default function BotPanel() {
                                             <td>
                                                 <input
                                                     type="text"
-                                                    value={row.CHECK_SPREAD_INTERVAL}
+                                                    value={row.TRADES_INTERVAL}
                                                     onChange={(e) =>
-                                                        handleNumericChange(i, "CHECK_SPREAD_INTERVAL", (e.target.value))
+                                                        handleNumericChange(i, "TRADES_INTERVAL", (e.target.value))
                                                     }
                                                 />
                                             </td>
@@ -311,6 +317,15 @@ export default function BotPanel() {
                                                     value={row.MIN_SPREAD}
                                                     onChange={(e) =>
                                                         handleNumericChange(i, "MIN_SPREAD", (e.target.value))
+                                                    }
+                                                />
+                                            </td>
+                                            <td>
+                                                <input
+                                                    type="text"
+                                                    value={row.SPREAD_MULTIPLIER}
+                                                    onChange={(e) =>
+                                                        handleNumericChange(i, "SPREAD_MULTIPLIER", (e.target.value))
                                                     }
                                                 />
                                             </td>
@@ -365,6 +380,15 @@ export default function BotPanel() {
                                                     value={row.MAX_INVENTORY_VALUE}
                                                     onChange={(e) =>
                                                         handleNumericChange(i, "MAX_INVENTORY_VALUE", (e.target.value))
+                                                    }
+                                                />
+                                            </td>
+                                            <td>
+                                                <input
+                                                    type="text"
+                                                    value={row.INV_LEVEL_TO_MULT}
+                                                    onChange={(e) =>
+                                                        handleNumericChange(i, "INV_LEVEL_TO_MULT", (e.target.value))
                                                     }
                                                 />
                                             </td>
@@ -442,8 +466,8 @@ export default function BotPanel() {
                             background: "#1e1e1e",
                             padding: "20px",
                             borderRadius: "10px",
-                            width: "500px",
-                            maxWidth: "90%",
+                            width: "600px",
+                            maxWidth: "80%",
                             color: "#fff",
                         }}
                     >
@@ -492,7 +516,7 @@ export default function BotPanel() {
                             padding: "20px",
                             borderRadius: "10px",
                             width: "600px",
-                            maxWidth: "90%",
+                            maxWidth: "80%",
                             color: "#fff",
                         }}
                     >

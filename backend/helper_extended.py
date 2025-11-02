@@ -13,6 +13,7 @@ from x10.perpetual.configuration import MAINNET_CONFIG
 from x10.perpetual.orders import OrderSide as ExtendedOrderSide
 from x10.perpetual.trading_client import PerpetualTradingClient
 from x10.perpetual.stream_client import PerpetualStreamClient
+from x10.perpetual.simple_client.simple_trading_client import BlockingTradingClient
 
 logger                          = logging.getLogger("helper_exended")
 logger.setLevel                 (logging.INFO)
@@ -21,6 +22,7 @@ load_dotenv                     ()
 class ExtendedAPI:
     def __init__(self, symbol: str):
         self.client             = None
+        self.simpleClient       = None
         self.ws_client          = None
         self.starkPerpAcc       = None 
         self.config             = {
@@ -64,6 +66,10 @@ class ExtendedAPI:
             starkPerpAcc
         )
         self.ws_client          = PerpetualStreamClient(api_url=MAINNET_CONFIG.stream_url)
+        self.simpleClient       = BlockingTradingClient(
+            MAINNET_CONFIG,
+            starkPerpAcc
+        )
         
     async def initPair(self):
         url                     = f"https://api.starknet.extended.exchange/api/v1/info/markets?market={self.pair["symbol"]}"
@@ -238,6 +244,67 @@ class ExtendedAPI:
     #     except Exception as e:
     #         HELPERS.record_error(f'Extended MarketOrder Error:{e}')
     #         return None
+
+
+    async def placeOrder(self, side: str, price: float, qty: float, max_retries=10, delay=0.5):
+        if side.upper() == "BUY":
+            side_enum = ExtendedOrderSide.BUY
+        elif side.upper() == "SELL":
+            side_enum = ExtendedOrderSide.SELL
+        else:
+            logger.error("Invalid side, must be BUY or SELL")
+            return None
+
+        price           = HELPERS.extGetAllowedNum(price, self.pair["min_price_change"])
+        price           = Decimal(str(price))
+        fixQty          = HELPERS.extendedFmtDecimal(qty, self.pair["asset_precision"])
+        fixQty          = Decimal(str(fixQty))
+
+        return_msg      = f"• placingOrder ⭢ [{side}, {price}, {fixQty}, {price}]"  + '\n'
+        logger.info     ( f"• placingOrder ⭢ [{side}, {price}, {fixQty}, {price}]" )
+
+        # ✅ RETRY LOOP
+        for attempt in range(1, max_retries + 1):
+            try:
+                start_time              = time.perf_counter()
+                order                   = await self.simpleClient.create_and_place_order(
+                    amount_of_synthetic = fixQty,
+                    price               = price,
+                    market_name         = self.pair["symbol"],
+                    side                = side_enum,
+                    post_only           = True,
+                )
+                end_time                = time.perf_counter()
+                latency_ms              = (end_time - start_time) * 1000
+
+                return_msg              += f"• {side} Placed | ⏱ Latency: {latency_ms:.2f} ms" + '\n'
+                logger.info             (  f"• {side} Placed | ⏱ Latency: {latency_ms:.2f} ms")
+                return return_msg
+
+            except Exception as e:
+                logger.error(f"❌ Attempt {attempt}/{max_retries} failed: {e}")
+
+                if attempt < max_retries:
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error("❌ Final failure after all retries")
+                    return return_msg + "• FAILED after all retries"
+
+    async def cancelOrders(self):
+        try:
+            symbol                  = self.pair["symbol"]
+            start_time              = time.perf_counter()
+            logger.info             (f"• CancelOrderByMarketId ⭢ {symbol}")
+            resp                    = await self.simpleClient.mass_cancel(markets=[symbol])
+            end_time                = time.perf_counter()
+            latency_ms              = (end_time - start_time) * 1000
+            logger.info             (f"• CancelOrderByMarketId Done, ⏱ Latency: {latency_ms:.2f} ms")
+            return resp
+        except Exception as e:
+            HELPERS.record_error(f'Extended CancelOrder Error:{e}')
+            return None
+        
+
 
 
     async def loadPos(self):

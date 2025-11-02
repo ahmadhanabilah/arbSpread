@@ -72,7 +72,7 @@ export default function RecentTrades() {
                         className="download-btn"
                         onClick={() => downloadCSV(ligData, "lighter_trades.csv")}
                     >
-                        ⬇️ Download CSV
+                        ⬇️ CSV
                     </button>
                 </div>
 
@@ -121,7 +121,7 @@ export default function RecentTrades() {
                         className="download-btn"
                         onClick={() => downloadCSV(extData, "extended_trades.csv")}
                     >
-                        ⬇️ Download CSV
+                        ⬇️ CSV
                     </button>
                 </div>
 

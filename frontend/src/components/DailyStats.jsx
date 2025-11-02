@@ -43,17 +43,6 @@ export default function DailyStats() {
         return () => clearInterval(interval);
     }, []);
 
-    const formatPnl = (value) => {
-        const numValue = parseFloat(value || 0);
-        const className =
-            numValue > 0
-                ? "text-green-600 font-semibold"
-                : numValue < 0
-                    ? "text-red-600 font-semibold"
-                    : "text-gray-700";
-        return <span className={className}>{numValue.toFixed(4)}</span>;
-    };
-
     const formatValue = (value, decimals = 2) => {
         const numValue = parseFloat(value || 0);
         return numValue.toFixed(decimals);
@@ -90,10 +79,10 @@ export default function DailyStats() {
                             return (
                                 <tr key={lig.date || i}>
                                     <td className="date-col">{lig.date || "N/A"}</td>
-                                    <td className="date-col">{ formatPnl(parseFloat(ext.daily_net_pnl) + parseFloat(lig.daily_pnl_usd)) || "N/A"}</td>
-                                    <td className="ext-col">{formatPnl(ext.daily_net_pnl)}</td>
-                                    <td className="ext-col">{formatPnl(ext.daily_volume_usd)}</td>
-                                    <td className="light-pnl-col">{formatPnl(lig.daily_pnl_usd)}</td>
+                                    <td className="date-col">{ formatValue(parseFloat(ext.daily_net_pnl) + parseFloat(lig.daily_pnl_usd)) || "N/A"}</td>
+                                    <td className="ext-col">{formatValue(ext.daily_net_pnl)}</td>
+                                    <td className="ext-col">{formatValue(ext.daily_volume_usd)}</td>
+                                    <td className="light-pnl-col">{formatValue(lig.daily_pnl_usd)}</td>
                                     <td className="light-pnl-col">{formatValue(lig.daily_volume_usd)}</td>
                                 </tr>
                             );

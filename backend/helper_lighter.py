@@ -84,8 +84,6 @@ class LighterAPI:
                 
         logger.info(f"Lighter initPair Done, Pair Config\n{self.pair}")
 
-
-
     async def startWsFunding(self):
         market_id           = self.pair["market_id"]
         if self._wsFundingTask and not self._wsFundingTask.done():
@@ -159,27 +157,6 @@ class LighterAPI:
                     }
         asyncio.create_task(run_ws())
         
-    # def _handle_orderbook_update(self, market_id, order_book):
-    #     try:
-    #         if isinstance(order_book, dict) and order_book.get("type") == "ping":
-    #             return
-
-    #         order_book["bids"].sort(key=lambda x: float(x["price"]), reverse=True)
-    #         order_book["asks"].sort(key=lambda x: float(x["price"]))
-
-    #         self.ob = {
-    #             "bidPrice": float(order_book["bids"][0]["price"]),
-    #             "askPrice": float(order_book["asks"][0]["price"]),
-    #             "bidSize" : float(order_book["bids"][0]["size"]),
-    #             "askSize" : float(order_book["asks"][0]["size"]),
-    #         }
-            
-    #         self.wsCallback('l_ob')
-
-    #     except Exception as e:
-    #         logger.error(f"Lighter handler error: {e}")
-
-
     def _handle_orderbook_update(self, market_id, order_book):
         try:
             if isinstance(order_book, dict) and order_book.get("type") == "ping":
@@ -295,35 +272,6 @@ class LighterAPI:
                     logger.error("❌ Final failure after all retries")
                     return return_msg + "• FAILED after all retries"
 
-
-        #     start_time              = time.perf_counter()
-
-        #     tx, tx_hash, err        = await self.client.create_order(
-        #         market_index        = market_index,
-        #         client_order_index  = int(asyncio.get_event_loop().time() * 1000),
-        #         base_amount         = fix_size,
-        #         price               = fix_price,
-        #         is_ask              = is_ask,
-        #         order_type          = lighter.SignerClient.ORDER_TYPE_LIMIT,                     
-        #         time_in_force       = lighter.SignerClient.ORDER_TIME_IN_FORCE_GOOD_TILL_TIME,   
-        #         reduce_only         = 1 if isReduceOnly else 0,
-        #         trigger_price       = 0,
-        #     )
-        #     if err:
-        #         raise Exception(err)  
-        #         return None
-
-        #     end_time                = time.perf_counter()
-        #     latency_ms              = (end_time - start_time) * 1000
-        #     logger.info(f"✅ {side} Placed | ⏱ Latency: {latency_ms:.2f} ms")
-            
-        #     return tx
-
-        # except Exception as e:
-        #     logger.error(f"⚠️ MarketOrder Failed: {e}")
-        #     HELPERS.record_error(f'Lighter Market Order Error {e}')
-        #     return None
-
     async def loadPos(self):
         try:
             symbol          = self.pair["symbol"]
@@ -361,3 +309,79 @@ class LighterAPI:
         except Exception as e:
             logger.error(f"Error fetching position for {symbol}: {str(e)}")
             return None
+
+
+    async def placeOrder(self, side: str, price: float, order_qty: float, max_retries=10, delay=0.5):
+        market_index            = self.pair["market_id"]
+        size_decimals           = self.pair["size_decimals"]
+        price_decimals          = self.pair["price_decimals"]
+
+        if side.upper() == "BUY":
+            is_ask              = False
+        elif side.upper() == "SELL":
+            is_ask              = True
+        else:
+            logger.error("Invalid side, must be BUY or SELL")
+            return None
+        
+        fix_size                = HELPERS.lighterFmtDecimal(order_qty, size_decimals)
+        fix_price               = HELPERS.lighterFmtDecimal(price    , price_decimals)
+
+        return_msg              = f"• PlacingMarketOrder ⭢ [{is_ask}, {fix_size}, {fix_price}]" + '\n'   
+        logger.info             ( f"• PlacingMarketOrder ⭢ [{is_ask}, {fix_size}, {fix_price}]")
+
+        # ✅ RETRY LOOP
+        for attempt in range(1, max_retries + 1):
+            try:
+                start_time = time.perf_counter()
+                tx, tx_hash, err = await self.client.create_order(
+                    market_index        = market_index,
+                    client_order_index  = int(asyncio.get_event_loop().time() * 1000),
+                    base_amount         = fix_size,
+                    price               = fix_price,
+                    is_ask              = is_ask,
+                    order_type          = lighter.SignerClient.ORDER_TYPE_LIMIT,
+                    time_in_force       = lighter.SignerClient.ORDER_TIME_IN_FORCE_GOOD_TILL_TIME,
+                    trigger_price       = 0,
+                )
+                
+                if err:
+                    raise Exception(err)
+                else:
+                    logger.info(tx_hash)
+
+                end_time                = time.perf_counter()
+                latency_ms              = (end_time - start_time) * 1000
+                return_msg              += f"• {side} Placed | ⏱ Latency: {latency_ms:.2f} ms" + '\n'
+                logger.info             (  f"• {side} Placed | ⏱ Latency: {latency_ms:.2f} ms")
+                return return_msg
+
+            except Exception as e:
+                logger.error(f"❌ Attempt {attempt}/{max_retries} failed: {e}")
+
+                if attempt < max_retries:
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error("❌ Final failure after all retries")
+                    return return_msg + "• FAILED after all retries"
+    
+
+    async def cancelOrders(self):
+        market_index            = self.pair["market_id"]
+        try:
+            start_time          = time.perf_counter()
+            tx, tx_hash, err    = await self.client.cancel_order(
+                market_index        = market_index,
+                order_index        = 11111111111,
+            )
+            if err:
+                raise Exception(err)
+            else:
+                logger.info(tx_hash)
+
+            end_time                = time.perf_counter()
+            latency_ms              = (end_time - start_time) * 1000
+            logger.info             ( f"• All Orders Cancelled | ⏱ Latency: {latency_ms:.2f} ms")
+
+        except Exception as e:
+            logger.error(f"❌ Cancel Orders failed: {e}")

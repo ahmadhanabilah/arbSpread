@@ -85,10 +85,6 @@ body {
     backdrop-filter: blur(2px);
 }
 
-.modal-content {
-    box-shadow: 0 0 20px rgba(0, 255, 100, 0.3);
-}
-
 
 /* Table Title and Actions */
 .table-title {
