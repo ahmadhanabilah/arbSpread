@@ -94,17 +94,7 @@ Your environment is now ready to run the project.
 ## Github Repo Update by Owner
 ```bash
 git add .
-git commit -m "pindah max inv col to the most right, and then add interval, remove showLiveSpread on configs
-negative input, koma use titik
-update mobile responsive css
-add live funding fee 
-entry cond = use l_value and e_value
-max value per trade (entry and exit)
-min size lighter
-add config on live, and remove the config logs
-reversed sort log
-ubah env lighter name
-critical tele mes"
+git commit -m "update"
 git push origin main
 ```
 
