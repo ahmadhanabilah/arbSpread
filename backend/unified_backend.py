@@ -98,31 +98,25 @@ def list_running_screens():
     except Exception:
         return []
 
-def start_screen(symbol: str):
-    if not SYMBOL_RE.match(symbol):
-        raise ValueError("Invalid symbol name. Allowed: A-Z a-z 0-9 _ - (1-20 chars).")
-
-    session_name = f"arb_{symbol}"
+def start_screen(symbolL: str, symbolE: str):
+    session_name = f"arb_{symbolL}_{symbolE}"
     running = list_running_screens()
     if session_name in running:
         return False
 
-    cmd = ["screen", "-dmS", session_name, "python3", "-u", "main.py", symbol]
+    cmd = ["screen", "-dmS", session_name, "python3", "-u", "main.py", symbolL, symbolE]
     subprocess.run(cmd, check=False)
     return True
 
-def stop_screen(symbol: str):
-    if not SYMBOL_RE.match(symbol):
-        raise ValueError("Invalid symbol name. Allowed: A-Z a-z 0-9 _ - (1-20 chars).")
-
+def stop_screen(symbolL: str, symbolE: str):
     try:
         res = subprocess.run(["screen", "-ls"], capture_output=True, text=True, check=False)
         out = res.stdout or ""
         for line in out.splitlines():
-            if f"arb_{symbol}" in line and "." in line:
+            if f"arb_{symbolL}_{symbolE}" in line and "." in line:
                 tokens = line.strip().split()
                 for token in tokens:
-                    if f"arb_{symbol}" in token and "." in token:
+                    if f"arb_{symbolL}_{symbolE}" in token and "." in token:
                         sid = token.split(".", 1)[0].strip()
                         # quit the session safely
                         subprocess.run(["screen", "-S", sid, "-X", "quit"], check=False)
@@ -146,17 +140,17 @@ class EnvPayload(BaseModel):
 @app.get("/api/symbols", dependencies=[Depends(require_auth)])
 async def get_symbols():
     cfg = read_json(CONFIG_PATH)
-    syms = [s["symbol"] for s in cfg.get("symbols", [])]
+    syms = [{"symbolL": s["symbolL"], "symbolE": s["symbolE"]} for s in cfg.get("symbols", [])]
     return {"symbols": syms, "running": list_running_screens()}
 
-@app.post("/api/start/{symbol}", dependencies=[Depends(require_auth)])
-async def start_bot(symbol: str):
-    start_screen(symbol)
+@app.post("/api/start", dependencies=[Depends(require_auth)])
+async def start_bot(symbolL: str, symbolE: str):
+    start_screen(symbolL, symbolE)
     return {"ok": True}
 
-@app.post("/api/stop/{symbol}", dependencies=[Depends(require_auth)])
-async def stop_bot(symbol: str):
-    return {"ok": stop_screen(symbol)}
+@app.post("/api/stop", dependencies=[Depends(require_auth)])
+async def stop_bot(symbolL: str, symbolE: str):
+    return {"ok": stop_screen(symbolL, symbolE)}
 
 @app.get("/api/config", dependencies=[Depends(require_auth)])
 async def get_config():
@@ -222,10 +216,10 @@ from fastapi import Request
 from fastapi.responses import StreamingResponse
 import asyncio
 
-@app.get("/api/live_stream/{symbol}", dependencies=[Depends(require_auth)])
-async def stream_live(request: Request, symbol: str):
+@app.get("/api/live_stream/{symbolL}/{symbolE}", dependencies=[Depends(require_auth)])
+async def stream_live(request: Request, symbolL: str, symbolE: str):
     """Stream live.txt updates in real-time using Server-Sent Events (SSE)."""
-    live_path = f"logs/{symbol}_live.txt"
+    live_path = f"logs/{symbolL}_{symbolE}_live.txt"
 
     async def event_stream():
         last_line = None
@@ -250,19 +244,17 @@ async def stream_live(request: Request, symbol: str):
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
-@app.get("/api/logs/{symbol}", dependencies=[Depends(require_auth)])
-async def get_logs(symbol: str, lines: int = 100):
-    """Return last N lines from the symbol log file."""
-    log_path = f"logs/{symbol}.log"
+@app.get("/api/logs/{symbolL}/{symbolE}", dependencies=[Depends(require_auth)])
+async def get_logs(symbolL: str, symbolE: str, lines: int = 100):
+    log_path = f"logs/{symbolL}_{symbolE}.log"
     if not os.path.exists(log_path):
-        return PlainTextResponse(f"No log file found for {symbol}", status_code=404)
+        return PlainTextResponse(f"No log file found for {symbolL}_{symbolE}", status_code=404)
     try:
         with open(log_path, "r", encoding="utf-8") as f:
-            data = f.readlines()[-lines:]
+            data = f.readlines()[:lines]
         return PlainTextResponse("".join(data))
     except Exception as e:
         return PlainTextResponse(f"Error reading log: {e}", status_code=500)
-
 
 
 
@@ -295,7 +287,7 @@ async def background_sync():
             logger.info("✅ Background data sync complete.")
         except Exception as e:
             logger.error(f"⚠️ Sync error: {e}")
-        await asyncio.sleep(60)
+        await asyncio.sleep(10)
 
 @app.on_event("startup")
 async def start_background_task():

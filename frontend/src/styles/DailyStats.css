@@ -1,50 +1,11 @@
-/* ---------------------------------------------------- */
-/* GLOBAL FONT IMPORT + RESET */
-/* ---------------------------------------------------- */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
-.table-container,
-.table-container * {
-    font-family: 'Inter', sans-serif !important;
-    font-weight: 500;
-    font-size: 0.95rem;
+.daily-stats-table-container {
     line-height: 1.5;
     color: #1f2937;
     box-sizing: border-box;
-}
-
-@media (max-width: 640px) {
-    .table-container,
-    .table-container * {
-        font-size: 0.85rem;
-    }
-}
-
-
-/* ---------------------------------------------------- */
-/* MAIN CONTAINER */
-/* ---------------------------------------------------- */
-.p-4.sm\:p-8.bg-gray-50.min-h-screen {
-    background-color: #f9fafb;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding-top: 2rem;
-}
-
-@media (max-width: 640px) {
-    .p-4.sm\:p-8.bg-gray-50.min-h-screen {
-        padding: 0.5rem;
-    }
-}
-
-
-/* ---------------------------------------------------- */
-/* TABLE CONTAINER (Scrollable + Styled) */
-/* ---------------------------------------------------- */
-.table-container {
     width: 100%;
-    max-width: 900px;
+    max-width:650px;
     background-color: #ffffff;
     border-radius: 12px;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
@@ -52,64 +13,235 @@
 
     /* 👇 Fill remaining height and scroll internally */
     flex: 1;
-    max-height: calc(80vh - 220px); /* adjust based on your header/buttons height */
+    max-height: calc(80vh - 100px); /* adjust based on your header/buttons height */
     overflow-y: auto;
     overflow-x: auto;
     position: relative;
+    margin: auto auto auto auto;
 }
 
 
-@media (max-width: 640px) {
-    .table-container {
-        max-width: 100%;
-        max-height: 100%px;
-    }
+/* ✅ Table layout stays wide enough for content */
+.daily-stats-table-container table {
+    width: 100%;
+    border-collapse: collapse;
 }
 
-/* Scrollbar styling */
-.table-container::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-.table-container::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-}
-
-.table-container::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+.daily-stats-table-container th,
+.daily-stats-table-container td {
+    font-size: 0.8rem !important;  /* the !important forces it */
+    color: #1f2937 !important;   /* ensures visible in dark mode */
+    width: auto;
+    padding: 12px;
+    text-align: center;
+    white-space: nowrap;
 }
 
 
 
-/* ---------------------------------------------------- */
-/* HEADER STYLING (Sticky) */
-/* ---------------------------------------------------- */
-th {
-    background-color: #f3f4f6;
-    color: #1f2937;
-    font-weight: 600;
-    position: sticky;
-}
-
-.date-header {
+.daily-stats-table-container .date-header {
     border-right: 2px solid #d1d5db;
     background-color: #e5e7eb !important;
     color: #000000;
 }
-
-.lighter-header {
-    background-color: #fef3c7;
-    color: #000000;
-}
-
-.extended-header {
-    background-color: #fef3c7;
-    color: #000000;
-}
-
-.date-col {
+.daily-stats-table-container .date-col {
     border-right: 2px solid #d1d5db;
+    color: #000000;
 }
+
+
+.daily-stats-table-container .netpnl-header {
+    border-right: 2px solid #d1d5db;
+    background-color: #e5e7eb !important;
+    color: #000000;
+}
+.daily-stats-table-container .netpnl-col {
+    border-right: 2px solid #d1d5db;
+    color: #000000;
+}
+
+
+
+.daily-stats-table-container .lig-header {
+    border-right: 2px solid #d1d5db;
+    background-color: #e5e7eb;
+    color: #000000;
+}
+
+.daily-stats-table-container .lig-pnl-header {
+    background-color: #e5e7eb;
+    color: #000000;
+}
+.daily-stats-table-container .lig-pnl-col {
+    color: #000000;
+}
+
+.daily-stats-table-container .lig-vol-header {
+    border-right: 2px solid #d1d5db;
+    background-color: #e5e7eb;
+    color: #000000;
+}
+.daily-stats-table-container .lig-vol-col {
+    border-right: 2px solid #d1d5db;
+    color: #000000;
+}
+
+
+.daily-stats-table-container .ext-header {
+    border-right: 2px solid #d1d5db;
+    background-color: #e5e7eb;
+    color: #000000;
+}
+
+.daily-stats-table-container .ext-pnl-header {
+    background-color: #e5e7eb;
+    color: #000000;
+}
+.daily-stats-table-container .ext-pnl-col {
+    color: #000000;
+}
+
+.daily-stats-table-container .ext-vol-header {
+    border-right: 2px solid #d1d5db;
+    background-color: #e5e7eb;
+    color: #000000;
+}
+.daily-stats-table-container .ext-vol-col {
+    border-right: 2px solid #d1d5db;
+    color: #000000;
+}
+
+
+
+
+.daily-stats-table-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.daily-stats-table-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.daily-stats-table-container::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+
+@media (max-width: 1024px) {
+    .daily-stats-table-container {
+        line-height: 1.5;
+        color: #1f2937;
+        box-sizing: border-box;
+        width: 85%;
+        max-width:800px;
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+                    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+        /* 👇 Fill remaining height and scroll internally */
+        flex: 1;
+        max-height: calc(80vh - 100px); /* adjust based on your header/buttons height */
+        overflow-y: auto;
+        overflow-x: auto;
+        position: relative;
+        margin: 4% auto auto auto;
+    }
+
+
+    .daily-stats-table-container table,
+    .daily-stats-table-container th,
+    .daily-stats-table-container td {
+        font-size: 0.65rem !important;  /* the !important forces it */
+        color: #1f2937 !important;   /* ensures visible in dark mode */
+    }
+
+    .daily-stats-table-container th {
+        background-color: #f3f4f6;
+        color: #1f2937;
+        font-weight: 600;
+        position: sticky;
+    }
+
+
+
+
+    .daily-stats-table-container .date-header {
+        border-right: 1px solid #d1d5db;
+        background-color: #e5e7eb !important;
+        color: #000000;
+    }
+    .daily-stats-table-container .date-col {
+        border-right: 1px solid #d1d5db;
+        color: #000000;
+    }
+
+
+    .daily-stats-table-container .netpnl-header {
+        border-right: 1px solid #d1d5db;
+        background-color: #e5e7eb !important;
+        color: #000000;
+    }
+    .daily-stats-table-container .netpnl-col {
+        border-right: 1px solid #d1d5db;
+        color: #000000;
+    }
+
+
+
+
+    .daily-stats-table-container .lig-header {
+        border-right: 1px solid #d1d5db;
+        background-color: #e5e7eb;
+        color: #000000;
+    }
+
+    .daily-stats-table-container .lig-pnl-header {
+        background-color: #e5e7eb;
+        color: #000000;
+    }
+    .daily-stats-table-container .lig-pnl-col {
+        color: #000000;
+    }
+
+    .daily-stats-table-container .lig-vol-header {
+        border-right: 1px solid #d1d5db;
+        background-color: #e5e7eb;
+        color: #000000;
+    }
+    .daily-stats-table-container .lig-vol-col {
+        border-right: 1px solid #d1d5db;
+        color: #000000;
+    }
+
+
+    .daily-stats-table-container .ext-header {
+        border-right: 1px solid #d1d5db;
+        background-color: #e5e7eb;
+        color: #000000;
+    }
+
+    .daily-stats-table-container .ext-pnl-header {
+        background-color: #e5e7eb;
+        color: #000000;
+    }
+    .daily-stats-table-container .ext-pnl-col {
+        color: #000000;
+    }
+
+    .daily-stats-table-container .ext-vol-header {
+        border-right: 1px solid #d1d5db;
+        background-color: #e5e7eb;
+        color: #000000;
+    }
+    .daily-stats-table-container .ext-vol-col {
+        border-right: 1px solid #d1d5db;
+        color: #000000;
+    }
+
+
+}
+
 

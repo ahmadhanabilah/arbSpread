@@ -1,32 +1,8 @@
-html,
-body,
-#root,
-.app-main-container {
-    height: 100%;
-    width: 100%;
-    max-width: 2000px;
-    margin-right: auto;
-    margin-left: auto;
-    font-family: "Inter", sans-serif;
-    background-color: #f9fafb;
-}
-
-/* ---------------------------------------------------- */
-/* HEADER + PAGE TITLE */
-/* ---------------------------------------------------- */
-.header-section {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 2rem;
-    text-align: center;
-
-}
-
-.view-switch-box {
+.navigator {
     display: flex;
     justify-content: center;
     gap: 10px;
-    margin: 20px auto 30px auto;
+    margin: 10vh auto 5vh auto;
     width: fit-content;
     padding: 5px;
     border: 1px solid #ddd;
@@ -34,7 +10,7 @@ body,
     background-color: #f9f9f9;
 }
 
-.view-switch-box button {
+.navigator button {
     padding: 10px 20px;
     border: none;
     border-radius: 6px;
@@ -46,14 +22,13 @@ body,
     /* Tailwind gray-600 */
 }
 
-.view-switch-box button.active {
+.navigator button.active {
     background-color: #3b82f6;
-    /* Tailwind blue-500 */
     color: white;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.view-switch-box button:not(.active):hover {
+.navigator button:not(.active):hover {
     background-color: #eee;
 }
 
@@ -66,44 +41,15 @@ body,
 /* ---------------------------------------------------- */
 
 @media (max-width: 1024px) {
-    .header-section {
-        margin-bottom: -50px;
-    }
-
-
-    .dashboard-title {
-        font-size: 1.5rem;
-    }
-
-    .view-switch-box {
+    .navigator {
+        margin: 8% 8% 2% 8%;
         flex-wrap: wrap;
         gap: 8px;
     }
 
-    .view-switch-box button {
-        font-size: 0.9rem;
+    .navigator button {
+        font-size: 0.7rem;
         padding: 8px 14px;
     }
 
-    .content-section {
-        padding: 0 1rem;
-    }
-}
-
-@media (max-width: 640px) {
-    .dashboard-title {
-        font-size: 1.3rem;
-    }
-
-    .daily-stats-section,
-    .recent-trades-section,
-    .bot-panel-section {
-        padding: 1rem;
-    }
-
-    thead th,
-    tbody td {
-        font-size: 0.85rem;
-        padding: 6px 8px;
-    }
 }

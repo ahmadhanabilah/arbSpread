@@ -13,10 +13,10 @@ import threading
 
 _live_lock = threading.Lock()
 
-def update_live(symbol, text):
+def update_live(symbolL, symbolE, text):
     """Keep only the latest live line for this symbol, formatted with newlines."""
     os.makedirs("logs", exist_ok=True)
-    live_path = f"logs/{symbol}_live.txt"
+    live_path = f"logs/{symbolL}_{symbolE}_live.txt"
 
     # Replace "|" with a newline for clearer formatting
     formatted = text.strip().replace("|", "\n")
@@ -42,9 +42,9 @@ class ReverseFileHandler(logging.FileHandler):
         except Exception:
             self.handleError(record)
 
-def setup_logger(symbol):
+def setup_logger(symbolL, symbolE):
     os.makedirs("logs", exist_ok=True)
-    log_path = f"logs/{symbol}.log"
+    log_path = f"logs/{symbolL}_{symbolE}.log"
 
     # Remove existing handlers
     for h in logging.root.handlers[:]:
@@ -60,12 +60,10 @@ def setup_logger(symbol):
         ]
     )
 
-    logging.getLogger().info(f"✅ Logger initialized for {symbol}, newest logs appear on top.")
-
     
-async def restart_bot(symbol, reason):
-    logging.info("🔁 Restarting bot for symbol %s...", symbol)
-    await send_telegram_message(f"⚠️ Restarting bot for symbol {symbol}... Reason:{reason}")
+async def restart_bot(symbolL, symbolE, reason):
+    logging.info(f"🔁 Restarting bot for {symbolL}_{symbolE}...", )
+    await send_telegram_message(f"⚠️ Restarting bot for symbol {symbolL}_{symbolE}... Reason:{reason}")
     await asyncio.sleep(1)
     os.execv(sys.executable, ['python3'] + sys.argv)
 
@@ -91,7 +89,7 @@ def calc_inv(L, E):
     e_qty, e_entry              = E.accountData["qty"], E.accountData["entry_price"]
     return l_qty, e_qty, l_entry, e_entry
 
-async def execute_trade(L, E, sideL, sideE, qty, tradeData):
+async def execute_trade(L, E, sideL, sideE, qty, tradeData, TRADES_INTERVAL):
     label                       = tradeData["direction"]
     logging.info                (f"✅ {label}: qty={qty}")
     L_AllSymInvValueBef         = L.invValue
@@ -99,7 +97,7 @@ async def execute_trade(L, E, sideL, sideE, qty, tradeData):
         L.placeMarketOrder(sideL, qty, label.startswith("Exit")),
         E.placeMarketOrder(sideE, qty, label.startswith("Exit"))
     )
-    await asyncio.sleep(1)
+    await asyncio.sleep         (TRADES_INTERVAL)
     msg                         = await HELPERS.initInfo(L, E, tradeData, L_AllSymInvValueBef)
     await asyncio.gather        (L.loadPos(), E.loadPos())
     await asyncio.sleep         (1)
@@ -113,60 +111,66 @@ async def balance_positions(L, E):
     await asyncio.sleep                 (1)
     l_qty, e_qty, l_entry, e_entry      = calc_inv(L, E)
 
-    # Already balanced (within tolerance)
     if abs(l_qty + e_qty) < 1e-8:
         return False
 
-    msg = f"⚖️ {E.pair["symbol"]} Balancing positions...\nL={l_qty}, E={e_qty}"
+    # msg = f"⚖️ {E.pair["symbol"]} Balancing positions...\nL={l_qty}, E={e_qty}"
 
-    # Decide which side has larger absolute position
-    if abs(l_qty) > abs(e_qty):
-        # Lighter has bigger position → reduce L
-        qty                     = abs(l_qty + e_qty)
+    # # Decide which side has larger absolute position
+    # if abs(l_qty) > abs(e_qty):
+    #     # Lighter has bigger position → reduce L
+    #     qty                     = abs(l_qty + e_qty)
 
-        if qty < E.pair["min_size"]:
-            msg_                = f"Balancing Paused...\nCalculated qty {qty} is less than min_size {E.pair['min_size']}\nBot Will Sleep 5mins..\nBalance your position manually!!"
-            logging.info        (msg_)
-            await send_tele_crit(msg_)            
-            await asyncio.sleep (300)
-            return
+    #     if qty < E.pair["min_size"]:
+    #         msg                 = f"Balancing Paused...\nCalculated qty {qty} is less than min_size {E.pair['min_size']}\nBot Will Sleep 5mins..\nBalance your position manually!!"
+    #         logging.info        (msg_)
+    #         await send_tele_crit(msg_)            
+    #         await asyncio.sleep (300)
+    #         return
 
-        if l_qty > 0:
-            await HELPERS.safePlaceOrder(L, "SELL", qty, True)
-            msg                 += f"\n🟠 Reduced L long by {qty}"
-        else:
-            await HELPERS.safePlaceOrder(L, "BUY" , qty, True)
-            msg                 += f"\n🟠 Reduced L short by {qty}"
+    #     if l_qty > 0:
+    #         await HELPERS.safePlaceOrder(L, "SELL", qty, True)
+    #         logging.info        (  f"\n🟠 Reduced L long by {qty}")
+    #         msg                 += f"\n🟠 Reduced L long by {qty}"
+    #     else:
+    #         await HELPERS.safePlaceOrder(L, "BUY" , qty, True)
+    #         logging.info        (  f"\n🟠 Reduced L short by {qty}")
+    #         msg                 += f"\n🟠 Reduced L short by {qty}"
 
-    else:
-        qty                     = abs(l_qty + e_qty)
-        if qty < E.pair["min_size"]:
-            msg_                = f"Balancing Paused...\nCalculated qty {qty} is less than min_size {E.pair['min_size']}\nBot Will Sleep 5mins..\nBalance your position manually!!"
-            logging.info        (msg_)
-            await send_tele_crit(msg_)            
-            await asyncio.sleep (300)
-            return
+    # else:
+    #     qty                     = abs(l_qty + e_qty)
+    #     if qty < E.pair["min_size"]:
+    #         msg                 = f"Balancing Paused...\nCalculated qty {qty} is less than min_size {E.pair['min_size']}\nBot Will Sleep 5mins..\nBalance your position manually!!"
+    #         logging.info        (msg_)
+    #         await send_tele_crit(msg_)            
+    #         await asyncio.sleep (300)
+    #         return
 
-        if e_qty > 0:
-            await HELPERS.safePlaceOrder(E, "SELL", qty, True)
-            msg                 += f"\n🔵 Reduced E long by {qty}"
-        else:
-            await HELPERS.safePlaceOrder(E, "BUY" , qty, True)
-            msg                 += f"\n🔵 Reduced E short by {qty}"
+    #     if e_qty > 0:
+    #         await HELPERS.safePlaceOrder(E, "SELL", qty, True)
+    #         logging.info        (  f"\n🔵 Reduced E long by {qty}")
+    #         msg                 += f"\n🔵 Reduced E long by {qty}"
+    #     else:
+    #         await HELPERS.safePlaceOrder(E, "BUY" , qty, True)
+    #         logging.info        (  f"\n🔵 Reduced E short by {qty}")
+    #         msg                 += f"\n🔵 Reduced E short by {qty}"
+    # msg                         = msg + f"\n✅ Balancing done. \n\nInventory: \nL:{L.accountData["qty"]}, E:{E.accountData["qty"]}, check manually!!\nBot Will Sleep 5mins.."
 
-    await asyncio.sleep         (10)
-    await asyncio.gather        (L.loadPos(), E.loadPos())    
-    msg                         = msg + f"\n✅ Balancing done. \n\nInventory: \nL:{L.accountData["qty"]}, E:{E.accountData["qty"]}, check manually!!\nBot Will Sleep 5mins.."
+    msg                         = (f'⚠️ Balance Manually !!! '
+                                   f'Position is Unbalanced\n'
+                                   f'Lighter {L.pair["symbol"]} : {L.accountData["qty"]}\n'
+                                   f'Extended {E.pair["symbol"]} : {E.accountData["qty"]}\n'
+    )                                   
 
-    await send_tele_crit(msg_)            
-    await asyncio.sleep         (300)
+    await send_tele_crit        (msg)            
+    await asyncio.sleep         (1)
     
 def fmt_rate(a, b):
     if a is None or b is None:
         return "N/A"
     return f"{b - a:.6f}%"
 
-def printInfos(L, E, minSpread_toEntry, symbol=None):
+def printInfos(L, E, minSpread_toEntry):
     lbid, lszb, lask, lsza  = L.ob["bidPrice"], L.ob["bidSize"], L.ob["askPrice"], L.ob["askSize"]
     ebid, eszb, eask, esza  = E.ob["bidPrice"], E.ob["bidSize"], E.ob["askPrice"], E.ob["askSize"]
         
@@ -206,11 +210,13 @@ def printInfos(L, E, minSpread_toEntry, symbol=None):
 
     line = (
         f"---"
-        f'|{L.pair["symbol"]}'
+        f'|L:{L.pair["symbol"]} E:{E.pair["symbol"]}'
         f"|---"
         f"|Orderbook Data"
         f"|SpreadLE: [TT:{spreadLE_TT:.2f}%] [TM:{spreadLE_TM:.2f}%] [MT:{spreadLE_MT:.2f}%]"
         f"|SpreadEL: [TT:{spreadEL_TT:.2f}%] [TM:{spreadEL_TM:.2f}%] [MT:{spreadEL_MT:.2f}%]"
+        f"|L:{L.ob}"
+        f"|E:{E.ob}"
         f"|---"
         f"|Funding Rate"
         f"|Net LE  : {fmt_rate(L.currFundRate, E.currFundRate)}"
@@ -235,10 +241,10 @@ def printInfos(L, E, minSpread_toEntry, symbol=None):
         f"|PERC_OF_OB            : {PERC_OF_OB*100}%"
         )
 
-    update_live(symbol, line)
+    update_live(L.pair["symbol"], E.pair["symbol"], line)
 
 # --- Main Trading Loop ---
-async def main(symbol, cfg):
+async def main(symbolL, symbolE, cfg):
     TRADES_INTERVAL         = cfg["TRADES_INTERVAL"]
     MIN_SPREAD              = cfg["MIN_SPREAD"]
     SPREAD_MULTIPLIER       = cfg["SPREAD_MULTIPLIER"]
@@ -250,11 +256,13 @@ async def main(symbol, cfg):
     INV_LEVEL_TO_MULT       = cfg["INV_LEVEL_TO_MULT"]
     PERC_OF_OB              = cfg["PERC_OF_OB"] / 100
 
-    logging.info            (f"🚀 Starting arbSpread_lighter_extended for {symbol} ...")
+    logging.info            (f"🚀 Starting Bot for {symbolL}_{symbolE} ...")
 
-    L, E                    = LighterAPI(symbol), ExtendedAPI(symbol)
+    L, E                    = LighterAPI(symbolL), ExtendedAPI(symbolE)
     await asyncio.gather(L.init(), E.init())
     await asyncio.gather(L.initPair(), E.initPair())
+    logging.info            ("✅ Both Exchange Initial is Done.")
+    
     await asyncio.gather(L.loadPos(), E.loadPos())
 
     # Wait for all WS connections
@@ -272,7 +280,6 @@ async def main(symbol, cfg):
     await ready.wait            ()
     logging.info                ("✅ All WebSockets connected.")
 
-
     # CheckSpreadLoop
     while True:
         spreadLE, spreadEL              = calc_spreads(L, E)
@@ -283,11 +290,6 @@ async def main(symbol, cfg):
         l_qty, e_qty, l_entry, e_entry  = calc_inv(L, E)
         l_inv_value                     = abs(l_qty) * l_entry  
         e_inv_value                     = abs(e_qty) * e_entry
-
-        # Balance check
-        if l_qty + e_qty != 0:
-            await balance_positions(L, E)
-            continue
 
 
         # Calculate inventory spread
@@ -310,7 +312,15 @@ async def main(symbol, cfg):
 
 
         # minSpread_toEntry     = max(MIN_SPREAD, spreadInv*SPREAD_MULTIPLIER)
-        printInfos(L, E, minSpread_toEntry, symbol)
+        printInfos(L, E, minSpread_toEntry)
+
+
+        # Balance check
+        if l_qty + e_qty != 0:
+            await balance_positions(L, E)
+            continue
+
+
 
         # --- ENTRY ---
         entryCond_LE            = ((l_qty >= 0 and e_qty <= 0) and 
@@ -369,13 +379,13 @@ async def main(symbol, cfg):
                     "bidPrice"  : L.ob["bidPrice"],
                     "bidSize"   : L.ob["bidSize"],
                 }
-                await execute_trade(L, E, "SELL", "BUY", qty, newTradeData)
+                await execute_trade(L, E, "SELL", "BUY", qty, newTradeData, TRADES_INTERVAL)
                 await asyncio.sleep(TRADES_INTERVAL)
                 continue
 
             if not qty or qty <= 0:
                 logging.warning(f"⚠️ [exitCond_fromLE] Calculated qty={qty} is zero or invalid. Restarting bot...")
-                await restart_bot(symbol, 'Invalid trade quantity calculated in exitCond_fromLE')
+                await restart_bot(symbolL, symbolE, 'Invalid trade quantity calculated in exitCond_fromLE')
                 return
 
 
@@ -415,13 +425,12 @@ async def main(symbol, cfg):
                     "bidPrice"  : E.ob["bidPrice"],
                     "bidSize"   : E.ob["bidSize"],
                 }
-                await execute_trade(L, E, "BUY", "SELL", qty, newTradeData)
-                await asyncio.sleep(TRADES_INTERVAL)
+                await execute_trade(L, E, "BUY", "SELL", qty, newTradeData, TRADES_INTERVAL)
                 continue
 
             if not qty or qty <= 0:
                 logging.warning(f"⚠️ [exitConf_fromEL] Calculated qty={qty} is zero or invalid. Restarting bot...")
-                await restart_bot(symbol, 'Invalid trade quantity calculated in exitCond_fromEL')
+                await restart_bot(symbolL, symbolE, 'Invalid trade quantity calculated in exitCond_fromEL')
                 return
 
 
@@ -458,13 +467,12 @@ async def main(symbol, cfg):
                     "bidPrice"  : E.ob["bidPrice"],
                     "bidSize"   : E.ob["bidSize"],
                 }
-                await execute_trade(L, E, "BUY", "SELL", qty, newTradeData)
-                await asyncio.sleep(TRADES_INTERVAL)
+                await execute_trade(L, E, "BUY", "SELL", qty, newTradeData, TRADES_INTERVAL)
                 continue
 
             if not qty or qty <= 0:
                 logging.warning(f"⚠️ [entryCond_LE] Calculated qty={qty} is zero or invalid. Restarting bot...")
-                await restart_bot(symbol, 'Invalid trade quantity calculated in entryCond_LE')
+                await restart_bot(symbolL, symbolE, 'Invalid trade quantity calculated in entryCond_LE')
                 return
 
         if entryCond_EL:
@@ -499,13 +507,12 @@ async def main(symbol, cfg):
                     "bidPrice"  : L.ob["bidPrice"],
                     "bidSize"   : L.ob["bidSize"],
                 }
-                await execute_trade(L, E, "SELL", "BUY", qty, newTradeData)
-                await asyncio.sleep(TRADES_INTERVAL)
+                await execute_trade(L, E, "SELL", "BUY", qty, newTradeData, TRADES_INTERVAL)
                 continue
 
             if not qty or qty <= 0:
                 logging.warning(f"⚠️ [entryCond_EL] Calculated qty={qty} is zero or invalid. Restarting bot...")
-                await restart_bot(symbol, 'Invalid trade quantity calculated in entryCond_EL')
+                await restart_bot(symbolL, symbolE, 'Invalid trade quantity calculated in entryCond_EL')
                 return
 
 
@@ -516,15 +523,16 @@ async def main(symbol, cfg):
 # --- Entry Point ---
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        symbol              = sys.argv[1]
-        setup_logger        (symbol)
+        symbolL             = sys.argv[1]
+        symbolE             = sys.argv[2]
+        setup_logger        (symbolL, symbolE)
         configs             = load_config()
-        cfg                 = next((item for item in configs["symbols"] if item["symbol"] == symbol), None)
+        cfg                 = next((item for item in configs["symbols"] if item["symbolL"] == symbolL), None)
 
         if cfg is None:
-            logging.info(f"❌ Symbol {symbol} not found in config.json")
+            logging.info(f"❌ Symbol {symbolL} not found in config.json")
             sys.exit(1)
 
-        asyncio.run(main(symbol, cfg))
+        asyncio.run(main(symbolL, symbolE, cfg))
 
 # ---

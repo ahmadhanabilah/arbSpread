@@ -62,21 +62,21 @@ export default function RecentTrades() {
     if (error) return <div className="p-4 text-center text-red-500">{error}</div>;
 
     return (
-        <div className="trades-row-container">
+        <div className="trades-row-main-container">
 
             {/* ✅ Lighter Trades */}
-            <div className="table-block">
-                <div className="table-header">
-                    <h2 className="table-title">Lighter</h2>
+            <div className="trades-row">
+                <div className="trades-table-header">
+                    <h2 className="trades-table-title">Lighter</h2>
                     <button
-                        className="download-btn"
+                        className="trades-download-btn"
                         onClick={() => downloadCSV(ligData, "lighter_trades.csv")}
                     >
                         ⬇️ CSV
                     </button>
                 </div>
 
-                <div className="table-responsive">
+                <div className="trades-table">
                     <table>
                         <thead>
                             <tr>
@@ -114,18 +114,18 @@ export default function RecentTrades() {
             </div>
 
             {/* ✅ Extended Trades */}
-            <div className="table-block">
-                <div className="table-header">
-                    <h2 className="table-title">Extended</h2>
+            <div className="trades-row">
+                <div className="trades-table-header">
+                    <h2 className="trades-table-title">Extended</h2>
                     <button
-                        className="download-btn"
+                        className="trades-download-btn"
                         onClick={() => downloadCSV(extData, "extended_trades.csv")}
                     >
                         ⬇️ CSV
                     </button>
                 </div>
 
-                <div className="table-responsive">
+                <div className="trades-table">
                     <table>
                         <thead>
                             <tr>

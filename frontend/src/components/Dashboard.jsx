@@ -11,59 +11,56 @@ export default function Dashboard() {
     const [tab, setTab] = useState("stats");
 
     return (
-        <div className="app-main-container">
-            <header className="header-section">
-                <h1 className="dashboard-title">Dashboard</h1>
-                <div className="view-switch-box">
-                    <button
-                        className={tab === "stats" ? "active" : ""}
-                        onClick={() => setTab("stats")}
-                    >
-                        📈 Daily Stats
-                    </button>
-                    <button
-                        className={tab === "trades" ? "active" : ""}
-                        onClick={() => setTab("trades")}
-                    >
-                        📊 Trades
-                    </button>
-                    <button
-                        className={tab === "bot" ? "active" : ""}
-                        onClick={() => setTab("bot")}
-                    >
-                        🤖 Bot Panel
-                    </button>
+        <div classname="page-container">
+            <div className="navigator">
+                <button
+                    className={tab === "stats" ? "active" : ""}
+                    onClick={() => setTab("stats")}
+                >
+                    📈 Daily Stats
+                </button>
+                <button
+                    className={tab === "trades" ? "active" : ""}
+                    onClick={() => setTab("trades")}
+                >
+                    📊 Trades
+                </button>
+                <button
+                    className={tab === "bot" ? "active" : ""}
+                    onClick={() => setTab("bot")}
+                >
+                    🤖 Bot Panel
+                </button>
 
-                    <button
-                        className={tab === "env" ? "active" : ""}
-                        onClick={() => setTab("env")}
-                    >
-                        ⚙️ Env Panel
-                    </button>
+                <button
+                    className={tab === "env" ? "active" : ""}
+                    onClick={() => setTab("env")}
+                >
+                    ⚙️ Env Panel
+                </button>
 
 
-                </div>
-            </header>
+            </div>
 
             <main className="content-section">
                 {tab === "stats" && (
-                    <div className="daily-stats-section">
+                    <div>
                         <DailyStats />
                     </div>
                 )}
                 {tab === "trades" && (
-                    <div className="recent-trades-section">
+                    <div>
                         <RecentTrades />
                     </div>
                 )}
                 {tab === "bot" && (
-                    <div className="bot-panel-section">
+                    <div>
                         <BotPanel />
                     </div>
                 )}
 
                 {tab === "env" && (
-                    <div className="env-panel-section">
+                    <div>
                         <EnvPanel />
                     </div>
                 )}

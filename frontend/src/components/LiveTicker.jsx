@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 
 const API_BASE = `${window.location.protocol}//${window.location.hostname}:8000`;
 
-export default function LiveTicker({ symbol }) {
+export default function LiveTicker({ symbolL, symbolE }) {
   const [line, setLine] = useState("Waiting...");
 
   useEffect(() => {
@@ -10,7 +10,7 @@ export default function LiveTicker({ symbol }) {
     const p = localStorage.getItem("p");
     const auth = btoa(`${u}:${p}`);
 
-    const url = `${API_BASE}/api/live_stream/${symbol}?auth=${encodeURIComponent(auth)}`;
+    const url = `${API_BASE}/api/live_stream/${symbolL}/${symbolE}?auth=${encodeURIComponent(auth)}`;
     const eventSource = new EventSource(url);
 
     eventSource.onmessage = (e) => {
@@ -25,7 +25,7 @@ export default function LiveTicker({ symbol }) {
     };
 
     return () => eventSource.close();
-  }, [symbol]);
+  }, [symbolL, symbolE]);
 
   return (
     <div

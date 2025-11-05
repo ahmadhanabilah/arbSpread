@@ -54,24 +54,42 @@ export default function DailyStats() {
     if (error) return <div className="p-4 text-center text-red-500">{error}</div>;
 
     return (
-        <div className="p-4 sm:p-8 bg-gray-50 min-h-screen">
-            <div className="table-container">
+        <div>
+            {/* <div className="daily-stats-header">
                 <table>
                     <thead>
                         <tr>
                             <th rowSpan="2" className="date-header">Date</th>
-                            <th rowSpan="2" className="date-header">Net PnL ($)</th>
-                            <th colSpan="2" className="text-center extended-header">💎 Extended Stats</th>
-                            <th colSpan="2" className="text-center lighter-header">🔥 Lighter Stats</th>
+                            <th rowSpan="2" className="netpnl-header">Net PnL ($)</th>
+                            <th colSpan="2" className="ext-header">Extended Stats</th>
+                            <th colSpan="2" className="lig-header">Lighter Stats</th>
                         </tr>
                         <tr>
-                            <th className="extended-header">PnL ($)</th>
-                            <th className="extended-header">Volume ($)</th>
-                            <th className="lighter-header">PnL ($)</th>
-                            <th className="lighter-header">Volume ($)</th>
+                            <th className="ext-pnl-header">PnL ($)</th>
+                            <th className="ext-vol-header">Volume ($)</th>
+                            <th className="lig-pnl-header">PnL ($)</th>
+                            <th className="lig-vol-header">Volume ($)</th>
                         </tr>
                     </thead>
-
+                </table>
+            </div>
+ */}
+            <div className="daily-stats-table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th rowSpan="2" className="date-header">Date</th>
+                            <th rowSpan="2" className="netpnl-header">Net PnL ($)</th>
+                            <th colSpan="2" className="ext-header">Extended Stats</th>
+                            <th colSpan="2" className="lig-header">Lighter Stats</th>
+                        </tr>
+                        <tr>
+                            <th className="ext-pnl-header">PnL ($)</th>
+                            <th className="ext-vol-header">Volume ($)</th>
+                            <th className="lig-pnl-header">PnL ($)</th>
+                            <th className="lig-vol-header">Volume ($)</th>
+                        </tr>
+                    </thead>
                     <tbody>
                         {[...Array(dataLength)].map((_, i) => {
                             const lig = pnlLig[i] || {};
@@ -79,11 +97,11 @@ export default function DailyStats() {
                             return (
                                 <tr key={lig.date || i}>
                                     <td className="date-col">{lig.date || "N/A"}</td>
-                                    <td className="date-col">{ formatValue(parseFloat(ext.daily_net_pnl) + parseFloat(lig.daily_pnl_usd)) || "N/A"}</td>
-                                    <td className="ext-col">{formatValue(ext.daily_net_pnl)}</td>
-                                    <td className="ext-col">{formatValue(ext.daily_volume_usd)}</td>
-                                    <td className="light-pnl-col">{formatValue(lig.daily_pnl_usd)}</td>
-                                    <td className="light-pnl-col">{formatValue(lig.daily_volume_usd)}</td>
+                                    <td className="netpnl-col">{ formatValue(parseFloat(ext.daily_net_pnl) + parseFloat(lig.daily_pnl_usd)) || "N/A"}</td>
+                                    <td className="ext-pnl-col">{formatValue(ext.daily_net_pnl)}</td>
+                                    <td className="ext-vol-col">{formatValue(ext.daily_volume_usd)}</td>
+                                    <td className="lig-pnl-col">{formatValue(lig.daily_pnl_usd)}</td>
+                                    <td className="lig-pnl-col">{formatValue(lig.daily_volume_usd)}</td>
                                 </tr>
                             );
                         })}

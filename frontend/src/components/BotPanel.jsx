@@ -27,24 +27,27 @@ export default function BotPanel() {
     const [showLive, setShowLive] = useState(false);
     const [liveSymbol, setLiveSymbol] = useState(null);
 
-    const openLive = (symbol) => {
-        setLiveSymbol(symbol);
+    const openLive = (pair) => {
+        setLiveSymbol(pair);
         setShowLive(true);
     };
+
 
     const closeLive = () => {
         setShowLive(false);
         setLiveSymbol(null);
     };
-
+    
     const [showLog, setShowLog] = useState(false);
     const [logSymbol, setLogSymbol] = useState(null);
 
-    const openLog = (symbol) => {
-        console.log("🟢 openLog called with:", symbol);
-        setLogSymbol(symbol);
+
+    const openLog = (pair) => {
+        console.log("🟢 openLog called with:", pair);
+        setLogSymbol(pair);
         setShowLog(true);
     };
+
 
     const closeLog = () => {
         setShowLog(false);
@@ -146,31 +149,33 @@ export default function BotPanel() {
 
     }
 
-    async function startBot(symbol) {
-        await fetchAuth(`${API_BASE}/api/start/${symbol}`, { method: "POST" });
+    async function startBot(row) {
+        await fetchAuth(`${API_BASE}/api/start?symbolL=${row.symbolL}&symbolE=${row.symbolE}`, { method: "POST" });
         loadSymbols();
     }
 
-    async function stopBot(symbol) {
-        await fetchAuth(`${API_BASE}/api/stop/${symbol}`, { method: "POST" });
+    async function stopBot(row) {
+        await fetchAuth(`${API_BASE}/api/stop?symbolL=${row.symbolL}&symbolE=${row.symbolE}`, { method: "POST" });
         loadSymbols();
     }
+
 
     function addSymbol() {
         setSymbols([
             ...symbols,
             {
-                symbol                  : "NEW",
-                MIN_SPREAD              : 0.3,
-                SPREAD_MULTIPLIER       : 1.1,
-                SPREAD_TP               : 0.2,
-                MIN_TRADE_VALUE         : 100,
-                MAX_TRADE_VALUE_ENTRY   : 200,
-                MAX_TRADE_VALUE_EXIT    : 200,
-                MAX_INVENTORY_VALUE     : 1000,
-                PERC_OF_OB              : 30,
-                INV_LEVEL_TO_MULT       : 5,
-                TRADES_INTERVAL         : 1,
+                symbolL: "NEW",
+                symbolE: "NEW-USD",
+                MIN_SPREAD: 0.3,
+                SPREAD_MULTIPLIER: 1.1,
+                SPREAD_TP: 0.2,
+                MIN_TRADE_VALUE: 100,
+                MAX_TRADE_VALUE_ENTRY: 200,
+                MAX_TRADE_VALUE_EXIT: 200,
+                MAX_INVENTORY_VALUE: 1000,
+                PERC_OF_OB: 30,
+                INV_LEVEL_TO_MULT: 5,
+                TRADES_INTERVAL: 1,
             },
         ]);
     }
@@ -244,200 +249,205 @@ export default function BotPanel() {
     }
 
     return (
-        <div className="main-container">
-            <div className="card">
-                <h3 className="table-title">Symbols Management</h3>
+        <div className="botpanel-main-container">
+            <div className="buttons-container">
+                <button className="btn" onClick={loadSymbols}>
+                    🔄 Reload
+                </button>
+                <button className="btn green" onClick={addSymbol}>
+                    ➕ Add Symbol
+                </button>
+                <button className="btn" onClick={saveConfig}>
+                    💾 Save Config
+                </button>
+                <button className="btn" onClick={logout}>
+                    🚪 Logout
+                </button>
+            </div>
 
-                <div className="table-actions">
-                    <button className="btn" onClick={loadSymbols}>
-                        🔄 Reload
-                    </button>
-                    <button className="btn green" onClick={addSymbol}>
-                        ➕ Add Symbol
-                    </button>
-                    <button className="btn" onClick={saveConfig}>
-                        💾 Save Config
-                    </button>
-                    <button className="btn" onClick={logout}>
-                        🚪 Logout
-                    </button>
-                </div>
+            <div className="botpanel-table-container">
+                <table id="symbolsTable">
+                    <thead>
+                        <tr>
+                            <th>Symbol Lighter</th>
+                            <th>Symbol Extended</th>
+                            <th>Status</th>
+                            <th>TRADES INTERVAL</th>
+                            <th>MIN SPREAD ENTRY</th>
+                            <th>SPREAD MULTIPLIER</th>
+                            <th>MIN SPREAD EXIT DIFF</th>
+                            <th>MIN TRADE VALUE</th>
+                            <th>MAX TRADE VALUE ENTRY</th>
+                            <th>MAX TRADE VALUE EXIT</th>
+                            <th>PERC OF OB</th>
+                            <th>MAX INVENTORY VALUE</th>
+                            <th>INV LEVEL TO MULT SPREAD</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
 
-                <div className="table-container">
-                    <table id="symbolsTable">
-                        <thead>
+                    <tbody>
+                        {symbols.length === 0 ? (
                             <tr>
-                                <th>Symbol</th>
-                                <th>Status</th>
-                                <th>TRADES INTERVAL</th>
-                                <th>MIN SPREAD ENTRY</th>
-                                <th>SPREAD MULTIPLIER</th>
-                                <th>MIN SPREAD EXIT DIFF</th>
-                                <th>MIN TRADE VALUE</th>
-                                <th>MAX TRADE VALUE ENTRY</th>
-                                <th>MAX TRADE VALUE EXIT</th>
-                                <th>PERC OF OB</th>
-                                <th>MAX INVENTORY VALUE</th>
-                                <th>INV LEVEL TO MULT SPREAD</th>
-                                <th>Action</th>
+                                <td colSpan="9">Loading...</td>
                             </tr>
-                        </thead>
+                        ) : (
+                            symbols.map((row, i) => {
+                                const isRunning = running.includes(`arb_${row.symbolL}_${row.symbolE}`);
+                                return (
+                                    <tr key={i}>
+                                        <td>
+                                            <input
+                                                value={row.symbolL}
+                                                onChange={(e) =>
+                                                    updateValue(i, "symbolL", e.target.value.toUpperCase())
+                                                }
+                                            />
+                                        </td>
+                                        <td>
+                                            <input
+                                                value={row.symbolE}
+                                                onChange={(e) =>
+                                                    updateValue(i, "symbolE", e.target.value.toUpperCase())
+                                                }
+                                            />
+                                        </td>
+                                        <td>{isRunning ? "🟢" : "⚫"}</td>
+                                        <td>
+                                            <input
+                                                type="text"
+                                                value={row.TRADES_INTERVAL}
+                                                onChange={(e) =>
+                                                    handleNumericChange(i, "TRADES_INTERVAL", (e.target.value))
+                                                }
+                                            />
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="text"
+                                                value={row.MIN_SPREAD}
+                                                onChange={(e) =>
+                                                    handleNumericChange(i, "MIN_SPREAD", (e.target.value))
+                                                }
+                                            />
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="text"
+                                                value={row.SPREAD_MULTIPLIER}
+                                                onChange={(e) =>
+                                                    handleNumericChange(i, "SPREAD_MULTIPLIER", (e.target.value))
+                                                }
+                                            />
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="text"
+                                                value={row.SPREAD_TP}
+                                                onChange={(e) =>
+                                                    handleNumericChange(i, "SPREAD_TP", (e.target.value))
+                                                }
+                                            />
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="text"
+                                                value={row.MIN_TRADE_VALUE}
+                                                onChange={(e) =>
+                                                    handleNumericChange(i, "MIN_TRADE_VALUE", (e.target.value))
+                                                }
+                                            />
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="text"
+                                                value={row.MAX_TRADE_VALUE_ENTRY}
+                                                onChange={(e) =>
+                                                    handleNumericChange(i, "MAX_TRADE_VALUE_ENTRY", (e.target.value))
+                                                }
+                                            />
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="text"
+                                                value={row.MAX_TRADE_VALUE_EXIT}
+                                                onChange={(e) =>
+                                                    handleNumericChange(i, "MAX_TRADE_VALUE_EXIT", (e.target.value))
+                                                }
+                                            />
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="text"
+                                                value={row.PERC_OF_OB}
+                                                onChange={(e) =>
+                                                    handleNumericChange(i, "PERC_OF_OB", (e.target.value))
+                                                }
+                                            />
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="text"
+                                                value={row.MAX_INVENTORY_VALUE}
+                                                onChange={(e) =>
+                                                    handleNumericChange(i, "MAX_INVENTORY_VALUE", (e.target.value))
+                                                }
+                                            />
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="text"
+                                                value={row.INV_LEVEL_TO_MULT}
+                                                onChange={(e) =>
+                                                    handleNumericChange(i, "INV_LEVEL_TO_MULT", (e.target.value))
+                                                }
+                                            />
+                                        </td>
+                                        <td>
+                                            <div className="action-buttons">
+                                                {!isRunning && (
+                                                    <button
+                                                        className="btn start"
+                                                        onClick={() => startBot(row)}
+                                                    >
+                                                        ▶ Start
+                                                    </button>
+                                                )}
+                                                {isRunning && (
+                                                    <button
+                                                        className="btn stop"
+                                                        onClick={() => stopBot(row)}
+                                                    >
+                                                        ⏹ Stop
+                                                    </button>
+                                                )}
+                                                <button
+                                                    className="btn delete"
+                                                    onClick={() => removeSymbol(i)}
+                                                >
+                                                    🗑 Delete
+                                                </button>
+                                                <button
+                                                    className="btn live"
+                                                    onClick={() => openLive({ symbolL: row.symbolL, symbolE: row.symbolE })}
+                                                >
+                                                    📡 Live
+                                                </button>
 
-                        <tbody>
-                            {symbols.length === 0 ? (
-                                <tr>
-                                    <td colSpan="9">Loading...</td>
-                                </tr>
-                            ) : (
-                                symbols.map((row, i) => {
-                                    const isRunning = running.includes(`arb_${row.symbol}`);
-                                    return (
-                                        <tr key={i}>
-                                            <td>
-                                                <input
-                                                    value={row.symbol}
-                                                    onChange={(e) =>
-                                                        updateValue(i, "symbol", e.target.value.toUpperCase())
-                                                    }
-                                                />
-                                            </td>
-                                            <td>{isRunning ? "🟢" : "⚫"}</td>
-                                            <td>
-                                                <input
-                                                    type="text"
-                                                    value={row.TRADES_INTERVAL}
-                                                    onChange={(e) =>
-                                                        handleNumericChange(i, "TRADES_INTERVAL", (e.target.value))
-                                                    }
-                                                />
-                                            </td>
-                                            <td>
-                                                <input
-                                                    type="text"
-                                                    value={row.MIN_SPREAD}
-                                                    onChange={(e) =>
-                                                        handleNumericChange(i, "MIN_SPREAD", (e.target.value))
-                                                    }
-                                                />
-                                            </td>
-                                            <td>
-                                                <input
-                                                    type="text"
-                                                    value={row.SPREAD_MULTIPLIER}
-                                                    onChange={(e) =>
-                                                        handleNumericChange(i, "SPREAD_MULTIPLIER", (e.target.value))
-                                                    }
-                                                />
-                                            </td>
-                                            <td>
-                                                <input
-                                                    type="text"
-                                                    value={row.SPREAD_TP}
-                                                    onChange={(e) =>
-                                                        handleNumericChange(i, "SPREAD_TP", (e.target.value))
-                                                    }
-                                                />
-                                            </td>
-                                            <td>
-                                                <input
-                                                    type="text"
-                                                    value={row.MIN_TRADE_VALUE}
-                                                    onChange={(e) =>
-                                                        handleNumericChange(i, "MIN_TRADE_VALUE", (e.target.value))
-                                                    }
-                                                />
-                                            </td>
-                                            <td>
-                                                <input
-                                                    type="text"
-                                                    value={row.MAX_TRADE_VALUE_ENTRY}
-                                                    onChange={(e) =>
-                                                        handleNumericChange(i, "MAX_TRADE_VALUE_ENTRY", (e.target.value))
-                                                    }
-                                                />
-                                            </td>
-                                            <td>
-                                                <input
-                                                    type="text"
-                                                    value={row.MAX_TRADE_VALUE_EXIT}
-                                                    onChange={(e) =>
-                                                        handleNumericChange(i, "MAX_TRADE_VALUE_EXIT", (e.target.value))
-                                                    }
-                                                />
-                                            </td>
-                                            <td>
-                                                <input
-                                                    type="text"
-                                                    value={row.PERC_OF_OB}
-                                                    onChange={(e) =>
-                                                        handleNumericChange(i, "PERC_OF_OB", (e.target.value))
-                                                    }
-                                                />
-                                            </td>
-                                            <td>
-                                                <input
-                                                    type="text"
-                                                    value={row.MAX_INVENTORY_VALUE}
-                                                    onChange={(e) =>
-                                                        handleNumericChange(i, "MAX_INVENTORY_VALUE", (e.target.value))
-                                                    }
-                                                />
-                                            </td>
-                                            <td>
-                                                <input
-                                                    type="text"
-                                                    value={row.INV_LEVEL_TO_MULT}
-                                                    onChange={(e) =>
-                                                        handleNumericChange(i, "INV_LEVEL_TO_MULT", (e.target.value))
-                                                    }
-                                                />
-                                            </td>
-                                            <td>
-                                                <div className="action-buttons">
-                                                    {!isRunning && (
-                                                        <button
-                                                            className="btn start"
-                                                            onClick={() => startBot(row.symbol)}
-                                                        >
-                                                            ▶ Start
-                                                        </button>
-                                                    )}
-                                                    {isRunning && (
-                                                        <button
-                                                            className="btn stop"
-                                                            onClick={() => stopBot(row.symbol)}
-                                                        >
-                                                            ⏹ Stop
-                                                        </button>
-                                                    )}
-                                                    <button
-                                                        className="btn delete"
-                                                        onClick={() => removeSymbol(i)}
-                                                    >
-                                                        🗑 Delete
-                                                    </button>
-                                                    <button
-                                                        className="btn live"
-                                                        onClick={() => openLive(row.symbol)}
-                                                    >
-                                                        📡 Live
-                                                    </button>
-
-                                                    <button
-                                                        className="btn log"
-                                                        onClick={() => openLog(row.symbol)}
-                                                    >
-                                                        📜 Logs
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                                <button
+                                                    className="btn log"
+                                                    onClick={() => openLog({ symbolL: row.symbolL, symbolE: row.symbolE })}
+                                                >
+                                                    📜 Logs
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })
+                        )}
+                    </tbody>
+                </table>
             </div>
 
 
@@ -471,7 +481,7 @@ export default function BotPanel() {
                             color: "#fff",
                         }}
                     >
-                        <LiveTicker symbol={liveSymbol} />
+                        <LiveTicker symbolL={liveSymbol?.symbolL} symbolE={liveSymbol?.symbolE} />
                         <button
                             onClick={closeLive}
                             style={{
@@ -520,7 +530,7 @@ export default function BotPanel() {
                             color: "#fff",
                         }}
                     >
-                        <LogViewer symbol={logSymbol} />
+                        <LogViewer symbolL={logSymbol?.symbolL} symbolE={logSymbol?.symbolE} />
                         <button
                             onClick={closeLog}
                             style={{

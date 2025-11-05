@@ -1,55 +1,73 @@
 {
   "symbols": [
     {
-      "symbol": "MEGA",
-      "TRADES_INTERVAL": 1,
+      "symbolL": "MEGA",
+      "symbolE": "MEGA-USD",
+      "TRADES_INTERVAL": 5,
       "MIN_SPREAD": 0.3,
       "SPREAD_MULTIPLIER": 2,
       "SPREAD_TP": 0.15,
-      "MIN_TRADE_VALUE": 20,
-      "MAX_TRADE_VALUE_ENTRY": 200,
-      "MAX_TRADE_VALUE_EXIT": 500,
+      "MIN_TRADE_VALUE": 30,
+      "MAX_TRADE_VALUE_ENTRY": 100,
+      "MAX_TRADE_VALUE_EXIT": 100,
       "MAX_INVENTORY_VALUE": 5000,
       "INV_LEVEL_TO_MULT": 5,
-      "PERC_OF_OB": 30
+      "PERC_OF_OB": 50
     },
     {
-      "symbol": "MON",
-      "TRADES_INTERVAL": 1,
-      "MIN_SPREAD": 0.5,
+      "symbolL": "MON",
+      "symbolE": "MON-USD",
+      "TRADES_INTERVAL": 3,
+      "MIN_SPREAD": 1,
       "SPREAD_MULTIPLIER": 2,
       "SPREAD_TP": 0.15,
       "MIN_TRADE_VALUE": 20,
-      "MAX_TRADE_VALUE_ENTRY": 200,
+      "MAX_TRADE_VALUE_ENTRY": 500,
       "MAX_TRADE_VALUE_EXIT": 500,
-      "MAX_INVENTORY_VALUE": 5000,
-      "INV_LEVEL_TO_MULT": 5,
-      "PERC_OF_OB": 30
+      "MAX_INVENTORY_VALUE": 7500,
+      "INV_LEVEL_TO_MULT": 3,
+      "PERC_OF_OB": 50
     },
     {
-      "symbol": "ZEC",
-      "TRADES_INTERVAL": 1,
+      "symbolL": "BERA",
+      "symbolE": "BERA-USD",
       "MIN_SPREAD": 0.3,
       "SPREAD_MULTIPLIER": 1.1,
-      "SPREAD_TP": 0.15,
+      "SPREAD_TP": 0.2,
       "MIN_TRADE_VALUE": 20,
       "MAX_TRADE_VALUE_ENTRY": 200,
       "MAX_TRADE_VALUE_EXIT": 200,
       "MAX_INVENTORY_VALUE": 1000,
+      "PERC_OF_OB": 10,
       "INV_LEVEL_TO_MULT": 5,
-      "PERC_OF_OB": 30
+      "TRADES_INTERVAL": 1
     },
     {
-      "symbol": "NEW",
+      "symbolL": "XAU",
+      "symbolE": "XAU-USD",
       "MIN_SPREAD": 0.3,
       "SPREAD_MULTIPLIER": 1.1,
       "SPREAD_TP": 0.2,
       "MIN_TRADE_VALUE": 100,
       "MAX_TRADE_VALUE_ENTRY": 200,
       "MAX_TRADE_VALUE_EXIT": 200,
-      "MAX_INVENTORY_VALUE": 1000,
+      "MAX_INVENTORY_VALUE": 500,
       "PERC_OF_OB": 30,
-      "INV_LEVEL_TO_MULT": 5,
+      "INV_LEVEL_TO_MULT": 2,
+      "TRADES_INTERVAL": 1
+    },
+    {
+      "symbolL": "EURUSD",
+      "symbolE": "EUR-USD",
+      "MIN_SPREAD": 0.03,
+      "SPREAD_MULTIPLIER": 2,
+      "SPREAD_TP": 0.06,
+      "MIN_TRADE_VALUE": 20,
+      "MAX_TRADE_VALUE_ENTRY": 200,
+      "MAX_TRADE_VALUE_EXIT": 200,
+      "MAX_INVENTORY_VALUE": 500,
+      "PERC_OF_OB": 30,
+      "INV_LEVEL_TO_MULT": 2,
       "TRADES_INTERVAL": 1
     }
   ]

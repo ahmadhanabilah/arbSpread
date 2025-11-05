@@ -82,7 +82,6 @@ class LighterAPI:
             "min_value"                 : float(match["min_quote_amount"]),   
         }
                 
-        logger.info(f"Lighter initPair Done, Pair Config\n{self.pair}")
 
     async def startWsFunding(self):
         market_id           = self.pair["market_id"]
@@ -272,43 +271,97 @@ class LighterAPI:
                     logger.error("❌ Final failure after all retries")
                     return return_msg + "• FAILED after all retries"
 
-    async def loadPos(self):
-        try:
-            symbol          = self.pair["symbol"]
-            account_index   = self.config["account_index"]
-            url             = f"{self.config['base_url']}/api/v1/account?by=index&value={account_index}"
 
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, headers={"accept": "application/json"}) as resp:
-                    if resp.status != 200:
-                        logger.error(f"Failed to fetch account info: {resp.status}")
-                        return None
-                    data = await resp.json()
+    async def loadPos(self, max_retries=1000, retry_delay=1):
+        symbol = self.pair["symbol"]
+        account_index = self.config["account_index"]
+        url = f"{self.config['base_url']}/api/v1/account?by=index&value={account_index}"
 
-            accounts                = data.get("accounts", [])
-            if not accounts:
-                logger.warning("No accounts found in response")
-                return None
+        for attempt in range(1, max_retries + 1):
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url, headers={"accept": "application/json"}) as resp:
+                        if resp.status != 200:
+                            logger.warning(f"⚠️ Attempt {attempt}/{max_retries} failed (HTTP {resp.status})")
+                            raise Exception(f"Bad HTTP status: {resp.status}")
+                        
+                        data = await resp.json(content_type=None)  # ← tolerate wrong/missing headers
 
-            positions               = accounts[0].get("positions", [])
-            if not positions:
-                logger.info("No positions found in response")
-                return
+                # ✅ Check API internal code
+                if data.get("code") != 200:
+                    logger.warning(f"⚠️ API returned code {data.get('code')} on attempt {attempt}")
+                    raise Exception("API returned error code")
 
-            current_pos             = next((p for p in positions if p["symbol"].upper() == symbol.upper()), None)
-            if current_pos:
-                qty                 = float(current_pos.get("position", "0")) * int(current_pos.get("sign", 1))
-                entry_price         = float(current_pos.get("avg_entry_price", "0"))
-                self.accountData    = {"qty" : qty, "entry_price" : entry_price}
-            else:
-                logger.info(f"No position found for symbol {symbol}")
-                self.accountData    = {"qty": 0, "entry_price": 0}
+                # ✅ Check that accounts exist
+                accounts = data.get("accounts", [])
+                if not accounts:
+                    logger.warning(f"⚠️ No accounts found (attempt {attempt})")
+                    raise Exception("Empty accounts in response")
+
+                positions = accounts[0].get("positions", [])
+                if not positions:
+                    logger.warning(f"⚠️ No positions found (attempt {attempt})")
+                    raise Exception("Empty positions in response")
+
+                # ✅ Try to find the current symbol
+                current_pos = next((p for p in positions if p["symbol"].upper() == symbol.upper()), None)
+                if current_pos:
+                    qty = float(current_pos.get("position", "0") or 0) * int(current_pos.get("sign", 1))
+                    entry_price = float(current_pos.get("avg_entry_price", "0") or 0)
+                    self.accountData = {"qty": qty, "entry_price": entry_price}
+                    return self.accountData
+                else:
+                    logger.warning(f"⚠️ No position found for symbol {symbol} (attempt {attempt})")
+                    raise Exception("Symbol not found in positions")
+
+            except Exception as e:
+                logger.info(f"Retry {attempt}/{max_retries} — {e}")
+                if attempt < max_retries:
+                    await asyncio.sleep(retry_delay)
+                    continue
+                else:
+                    logger.error(f"❌ Failed to fetch position for {symbol} after {max_retries} attempts")
+                    self.accountData = {"qty": 0, "entry_price": 0}
+                    return self.accountData
+
+    # async def loadPos(self):
+    #     try:
+    #         symbol          = self.pair["symbol"]
+    #         account_index   = self.config["account_index"]
+    #         url             = f"{self.config['base_url']}/api/v1/account?by=index&value={account_index}"
+
+    #         async with aiohttp.ClientSession() as session:
+    #             async with session.get(url, headers={"accept": "application/json"}) as resp:
+    #                 if resp.status != 200:
+    #                     logger.info(f"⚠️ Failed to loadPos")
+    #                     return None
+    #                 data = await resp.json()
+    #                 logger.info(data)
+
+    #         accounts                = data.get("accounts", [])
+    #         if not accounts:
+    #             logger.warning("No accounts found in response")
+    #             return None
+
+    #         positions               = accounts[0].get("positions", [])
+    #         if not positions:
+    #             logger.info("No positions found in response")
+    #             return
+
+    #         current_pos             = next((p for p in positions if p["symbol"].upper() == symbol.upper()), None)
+    #         if current_pos:
+    #             qty                 = float(current_pos.get("position", "0")) * int(current_pos.get("sign", 1))
+    #             entry_price         = float(current_pos.get("avg_entry_price", "0"))
+    #             self.accountData    = {"qty" : qty, "entry_price" : entry_price}
+    #         else:
+    #             logger.info(f"No position found for symbol {symbol}")
+    #             self.accountData    = {"qty": 0, "entry_price": 0}
             
-            return self.accountData
+    #         return self.accountData
 
-        except Exception as e:
-            logger.error(f"Error fetching position for {symbol}: {str(e)}")
-            return None
+    #     except Exception as e:
+    #         logger.info(f"⚠️ Error fetching position for {symbol}: {str(e)}")
+    #         return None
 
 
     async def placeOrder(self, side: str, price: float, order_qty: float, max_retries=10, delay=0.5):

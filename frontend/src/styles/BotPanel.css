@@ -6,46 +6,27 @@ body {
 }
 
 /* Container */
-.main-container {
-    padding: 16px;
+.botpanel-main-container {
+    width: 80%;
     max-width: 1600px;
-    margin: 0 auto;
-}
-
-.page-title {
-    text-align: center;
-    font-size: 2rem;
-    font-weight: 700;
-    color: #1f2937;
-    margin-bottom: 32px;
-}
-
-/* Card */
-.card {
+    margin: auto auto auto auto;
     background: white;
     border-radius: 12px;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
         0 4px 6px -2px rgba(0, 0, 0, 0.05);
     padding: 24px;
-    margin-bottom: 32px;
+    height: 65vh;
 }
 
-.centered-card {
-    max-width: 400px;
-    margin: 80px auto;
-    text-align: center;
-}
-
-.card input {
-    display: block;
-    width: 100px;
-    padding: 10px;
-    margin: 8px 0;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-}
 
 /* Buttons */
+.buttons-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 20px auto 40px auto;
+}
 .btn {
     background-color: #3b82f6;
     color: white;
@@ -55,9 +36,7 @@ body {
     font-weight: 600;
     cursor: pointer;
     transition: background 0.2s;
-    font-size: 14px;
-    min-height: 40px;
-    min-width: 80px;
+    font-size: 0.8rem;
 }
 
 .btn:hover {
@@ -80,40 +59,34 @@ body {
     background-color: #4b5563;
 }
 
-
 .modal-overlay {
     backdrop-filter: blur(2px);
 }
 
 
-/* Table Title and Actions */
-.table-title {
-    text-align: center;
-    margin-bottom: 16px;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #1f2937;
-}
 
-.table-actions {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 30px;
-}
 
-.table-container {
-    margin: 0 auto;
-    margin-top: 16px;
-    width: 95%;
-    max-width: 1600px;
-    overflow-x: auto;
+/* ===================================== */
+.botpanel-table-container {
+
+    box-sizing: border-box;
+    width: 100%;
+    background-color: #ffffff;
     border-radius: 12px;
-    background-color: white;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
-        0 4px 6px -2px rgba(0, 0, 0, 0.05);
+                0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+    max-height: 50vh; 
+    overflow-y: auto;
+    overflow-x: auto;
+    position: relative;
+    margin: auto auto auto auto;
+
 }
+
+
+
+
 
 /* Force equal column widths */
 #symbolsTable {
@@ -121,25 +94,33 @@ body {
     width: auto;
     border-collapse: collapse;
     table-layout: fixed;
-    /* makes all columns equal width */
+    font-size: 0.8rem;
 }
 
 #symbolsTable th,
 #symbolsTable td {
-    width: 7%;
     height: 70px;
     text-align: center;
     padding: 8px 10px;
     border-bottom: 1px solid #e5e7eb;
     word-wrap: break-word;
     white-space: normal;
-    font-size: 14px;
     vertical-align: middle;
 }
 
+#symbolsTable th {
+    background-color: #f3f4f6;
+    font-weight: 600;
+    text-align: center;
+    padding: 10px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
 /* Inputs stay compact */
 #symbolsTable input {
-    width: 90%;
+    font-size: 0.8rem;
+    width: 80%;
     padding: 6px;
     border-radius: 6px;
     border: 1px solid #d1d5db;
@@ -170,16 +151,51 @@ body {
 /* ✅ Responsive Adjustments */
 /* ===================================== */
 
-@media (max-width: 768px) {
-    .table-actions {
-        flex-direction: column;
-        align-items: center;
+@media (max-width: 1024px) {
+
+    
+        
+    /* Container */
+    .botpanel-main-container {
+        color: #1f2937;
+        box-sizing: border-box;
+        width: 85%;
+        max-width:800px;
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+                    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+        height: 70vh; 
+        overflow-y: auto;
+        overflow-x: auto;
+        position: relative;
+        margin: 4% auto auto auto;
     }
 
     .btn {
-        width: 100%;
-        max-width: 240px;
+        font-size: 0.7rem;
     }
+
+    /* ===================================== */
+    .botpanel-table-container {
+
+        box-sizing: border-box;
+        width: 100%;
+        max-width:600px;
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+                    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+        max-height: 50vh; 
+        overflow-y: auto;
+        overflow-x: auto;
+        position: relative;
+        margin: 4% auto auto auto;
+
+        }
+
 
 
 }

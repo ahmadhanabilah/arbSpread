@@ -33,7 +33,7 @@ class ExtendedAPI:
             "slippage"          : float(os.getenv("ALLOWED_SLIPPAGE")) / 100,
         }
         self.pair               = {
-            "symbol"            : symbol + "-USD",
+            "symbol"            : symbol,
             "min_size"          : None,
             "min_size_change"   : None,
             "min_price_change"  : None,
@@ -90,8 +90,6 @@ class ExtendedAPI:
             "min_price_change"  : float(trading_cfg["minPriceChange"]),
             "asset_precision"   : int  (market_info["assetPrecision"])
         }
-
-        logger.info(f"Extended initPair Done, Pair Config\n{self.pair}")
             
     async def startWs(self, wsCallback):
         self.wsCallback                     = wsCallback
@@ -331,6 +329,6 @@ class ExtendedAPI:
                 "entry_price"       : avg_price,
             }
         except Exception as e:
-            HELPERS.record_error(f'Extended LoadPos Error:{e}')
+            logger.info(f'⚠️ Extended LoadPos Error:{e}')
             return None
 

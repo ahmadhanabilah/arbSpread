@@ -88,11 +88,8 @@ export default function EnvPanel() {
     }
 
     return (
-        <div className="main-container">
-            <div className="card env-card">
-                <h3 className="table-title">⚙️ Environment Settings</h3>
-
-                <div className="table-actions">
+        <div className="env-container">
+                <div className="env-actions">
                     <button className="btn" onClick={fetchEnv}>
                         🔄 Reload
                     </button>
@@ -112,7 +109,6 @@ export default function EnvPanel() {
                 )}
 
                 {message && <div className="status-msg">{message}</div>}
-            </div>
         </div>
     );
 }

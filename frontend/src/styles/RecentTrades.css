@@ -1,19 +1,20 @@
-/* ✅ Horizontal row */
-.trades-row-container {
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+.trades-row-main-container {
     display: flex;
     flex-wrap: nowrap;              /* keep horizontal */
-    justify-content: center;        /* center horizontally */
+    justify-content: center;
     align-items: flex-start;
-    width: 100%;                    /* use full width */
-    overflow-x: auto;               /* allow horizontal scroll if needed */
-    padding: 10px;
+    flex-wrap: wrap;
+    gap: 24px;
+    width: 100%;
+    padding: 24px;
     box-sizing: border-box;
-    scroll-snap-type: x mandatory;  /* smooth snapping */
-    gap: 16px;
+    font-family: 'Inter', sans-serif;
 }
 
-/* ✅ Both tables side-by-side and fully visible */
-.table-block {
+/* ✅ Each table card */
+.trades-row {
     flex: 1; 
     max-width: 50%; 
     background: #ffffff1f;
@@ -23,69 +24,121 @@
     padding: 12px;
 }
 
-/* ✅ Table layout stays wide enough for content */
-table {
-    width: 100%;
-    min-width: auto;
-    border-collapse: collapse;
-    table-layout: auto;
+
+/* ✅ Header (title + CSV button) */
+.trades-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 20px;
 }
 
-h2.table-title {
-    margin-bottom: 5px;
-}   
+.trades-table-title {
+    margin-left:auto;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1f2937;
+}
 
+.trades-download-btn {
+    margin-right:auto;
+    font-size: 0.8rem;
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
 
-.table-responsive {
+.trades-download-btn:hover {
+    background: #2563eb;
+}
+
+/* ✅ Table wrapper (scroll inside) */
+.trades-table {
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: calc(75vh - 120px);
 }
 
-/* Table cells */
-th, td {
-    width: auto;
-    padding: 12px;
-    font-size: 18px;
+/* ✅ Table styling */
+.trades-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    color: #1f2937;
+}
+
+.trades-table th {
+    background-color: #f3f4f6;
+    font-weight: 600;
     text-align: center;
+    padding: 10px 12px;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.trades-table td {
+    padding: 10px 12px;
+    text-align: center;
+    border-bottom: 1px solid #e5e7eb;
     white-space: nowrap;
 }
 
-/* Profit/loss colors */
-.pnl-positive { color: green; font-weight: bold; }
-.pnl-negative { color: red; font-weight: bold; }
-
-
-.download-btn {
-    display: flex;
-    justify-content: space-between;
-    border: black 2px solid;
-    color: black;
-    font-size: 10px;
-    margin-bottom: 40px;
-    margin-left: auto;
-    margin-right: auto;
+/* ✅ PnL colors */
+.pnl-positive {
+    color: #16a34a;
+    font-weight: 600;
 }
 
-/* ✅ Mobile adjustments */
-@media (max-width: 640px) {
-    .table-title {
-        text-align: left;
-        font-size: 16px;
-        margin-bottom: 24px;
-        font-weight: bold;
+.pnl-negative {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+/* ✅ Scrollbar styling */
+.trades-table::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.trades-table::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.trades-table::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* ✅ Responsive adjustments */
+@media (max-width: 1024px) {
+
+    .trades-table-title {
+        margin-left: auto;
+        font-size: 0.8rem;
     }
 
-    .download-btn {
-        border: black 1px solid;
-        font-size: 10px;
+    .trades-download-btn {
+        margin-right: auto;
+        font-size: 0.6rem;
     }
 
-    .table-block {
-        flex: 1; 
-        max-width: 900px; 
-        background: #ffffff1f;
-        border-radius: 12px;
-        box-shadow: 0 4px 8px rgba(119, 110, 110, 0.4);
-        overflow-x: auto;
+    .trades-table {
+        max-height: calc(75vh - 150px);
+    }
+
+    .trades-table table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.65rem;
+        color: #1f2937;
     }
 
 }
+
