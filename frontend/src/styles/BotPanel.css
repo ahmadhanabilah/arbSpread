@@ -128,6 +128,10 @@ body {
     box-sizing: border-box;
     display: block;
     margin: 0 auto;
+    background-color: white;
+    color: #374151;
+    
+    
 }
 
 /* Header styling */
@@ -144,6 +148,20 @@ body {
     gap: 6px;
 }
 
+/* ✅ Scrollbar styling on container instead of table */
+.botpanel-table-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.botpanel-table-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.botpanel-table-container::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
 
 
 

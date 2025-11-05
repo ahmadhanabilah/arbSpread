@@ -102,6 +102,7 @@ export default function EnvPanel() {
                     <div className="loading-text">Loading...</div>
                 ) : (
                     <textarea
+                        className="textarea"
                         value={envText}
                         onChange={(e) => setEnvText(e.target.value)}
                         spellCheck={false}
