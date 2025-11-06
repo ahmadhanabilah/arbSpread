@@ -35,9 +35,13 @@ pip install --upgrade git+https://github.com/elliottech/lighter-python.git >/dev
 # STEP 4 — Restart backend & frontend
 # -----------------------------
 echo "🧨 Killing all running screen sessions..."
-screen -ls | grep -Eo '[0-9]+\.[^[:space:]]+' | xargs -r -n 1 screen -S {} -X quit
+screen -ls | grep -Eo '[0-9]+\.[^[:space:]]+' | while read -r session; do
+    echo "   🔪 Killing $session"
+    screen -S "$session" -X quit
+done
 sleep 1
 echo "✅ All screens terminated."
+
 
 echo ""
 echo "🧹 [5/6] Restarting backend and frontend screens..."
