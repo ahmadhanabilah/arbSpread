@@ -1,0 +1,70 @@
+.readme-container {
+    width: 85%;
+    max-width: 1200px;
+    margin: 20px auto;
+    background: var(--card-bg, #fff);
+    color: var(--text-color, #222);
+    padding: 24px 32px;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+    overflow-y: auto;
+    height: 70vh;
+    line-height: 1.6;
+}
+
+/* Markdown general */
+.markdown-body h1, .markdown-body h2, .markdown-body h3 {
+    color: var(--heading-color, #1e1e1e);
+    margin-top: 1.5em;
+}
+.markdown-body h1 {
+    font-size: 1.8rem;
+    border-bottom: 2px solid #e5e5e5;
+    padding-bottom: 0.3em;
+}
+.markdown-body h2 {
+    font-size: 1.4rem;
+}
+.markdown-body h3 {
+    font-size: 1.2rem;
+}
+
+.markdown-body p {
+    margin: 0.7em 0;
+}
+
+.markdown-body code {
+    background: #f6f8fa;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.markdown-body pre {
+    background: #f6f8fa;
+    padding: 10px;
+    border-radius: 6px;
+    overflow-x: auto;
+}
+
+.markdown-body table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+}
+
+.markdown-body th, .markdown-body td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+.markdown-body th {
+    background: #f2f2f2;
+}
+
+.readme-loading, .readme-error {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 16px;
+}

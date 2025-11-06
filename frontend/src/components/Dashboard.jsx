@@ -6,6 +6,7 @@ import "../styles/Dashboard.css";
 import DailyStats from "./DailyStats";
 import RecentTrades from "./RecentTrades";
 import BotPanel from "./BotPanel";
+import Readme from "./Readme";
 
 export default function Dashboard() {
     const [tab, setTab] = useState("stats");
@@ -39,6 +40,12 @@ export default function Dashboard() {
                     ⚙️ Env Panel
                 </button>
 
+                <button
+                    className={tab === "Readme" ? "active" : ""}
+                    onClick={() => setTab("Readme")}
+                >
+                    Readme
+                </button>
 
             </div>
 
@@ -65,6 +72,11 @@ export default function Dashboard() {
                     </div>
                 )}
 
+                {tab === "Readme" && (
+                    <div>
+                        <Readme />
+                    </div>
+                )}
 
             </main>
         </div>

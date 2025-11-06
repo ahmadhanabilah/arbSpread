@@ -269,6 +269,7 @@ export default function BotPanel() {
                 <table id="symbolsTable">
                     <thead>
                         <tr>
+                            <th>Action</th>
                             <th>Symbol Lighter</th>
                             <th>Symbol Extended</th>
                             <th>Status</th>
@@ -282,7 +283,6 @@ export default function BotPanel() {
                             <th>PERC OF OB</th>
                             <th>MAX INVENTORY VALUE</th>
                             <th>INV LEVEL TO MULT SPREAD</th>
-                            <th>Action</th>
                         </tr>
                     </thead>
 
@@ -296,6 +296,45 @@ export default function BotPanel() {
                                 const isRunning = running.includes(`arb_${row.symbolL}_${row.symbolE}`);
                                 return (
                                     <tr key={i}>
+                                        <td>
+                                            <div className="action-buttons">
+                                                {!isRunning && (
+                                                    <button
+                                                        className="btn start"
+                                                        onClick={() => startBot(row)}
+                                                    >
+                                                        ▶ Start
+                                                    </button>
+                                                )}
+                                                {isRunning && (
+                                                    <button
+                                                        className="btn stop"
+                                                        onClick={() => stopBot(row)}
+                                                    >
+                                                        ⏹ Stop
+                                                    </button>
+                                                )}
+                                                <button
+                                                    className="btn delete"
+                                                    onClick={() => removeSymbol(i)}
+                                                >
+                                                    🗑 Delete
+                                                </button>
+                                                <button
+                                                    className="btn live"
+                                                    onClick={() => openLive({ symbolL: row.symbolL, symbolE: row.symbolE })}
+                                                >
+                                                    📡 Live
+                                                </button>
+
+                                                <button
+                                                    className="btn log"
+                                                    onClick={() => openLog({ symbolL: row.symbolL, symbolE: row.symbolE })}
+                                                >
+                                                    📜 Logs
+                                                </button>
+                                            </div>
+                                        </td>
                                         <td>
                                             <input
                                                 value={row.symbolL}
@@ -402,45 +441,6 @@ export default function BotPanel() {
                                                     handleNumericChange(i, "INV_LEVEL_TO_MULT", (e.target.value))
                                                 }
                                             />
-                                        </td>
-                                        <td>
-                                            <div className="action-buttons">
-                                                {!isRunning && (
-                                                    <button
-                                                        className="btn start"
-                                                        onClick={() => startBot(row)}
-                                                    >
-                                                        ▶ Start
-                                                    </button>
-                                                )}
-                                                {isRunning && (
-                                                    <button
-                                                        className="btn stop"
-                                                        onClick={() => stopBot(row)}
-                                                    >
-                                                        ⏹ Stop
-                                                    </button>
-                                                )}
-                                                <button
-                                                    className="btn delete"
-                                                    onClick={() => removeSymbol(i)}
-                                                >
-                                                    🗑 Delete
-                                                </button>
-                                                <button
-                                                    className="btn live"
-                                                    onClick={() => openLive({ symbolL: row.symbolL, symbolE: row.symbolE })}
-                                                >
-                                                    📡 Live
-                                                </button>
-
-                                                <button
-                                                    className="btn log"
-                                                    onClick={() => openLog({ symbolL: row.symbolL, symbolE: row.symbolE })}
-                                                >
-                                                    📜 Logs
-                                                </button>
-                                            </div>
                                         </td>
                                     </tr>
                                 );

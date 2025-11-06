@@ -1,0 +1,88 @@
+#!/bin/bash
+# === ArbSpread Auto Updater & Restarter ===
+# Usage: bash update.sh
+
+REPO_DIR="/home/hanabilx/arbSpread"
+BACKEND_SCREEN="web-backend"
+FRONTEND_SCREEN="web-frontend"
+BACKEND_DIR="$REPO_DIR/backend"
+FRONTEND_DIR="$REPO_DIR/frontend"
+VENV_PATH="/home/hanabilx/nodevenv/konekter_v3/18/bin/activate"
+
+echo ""
+echo "🔄 [1/6] Pulling latest ArbSpread repo..."
+cd "$REPO_DIR" || exit
+git fetch origin main
+git reset --hard origin/main
+echo "✅ Repository synced with main branch."
+
+# -----------------------------
+# STEP 2 — Update SDKs
+# -----------------------------
+echo ""
+echo "📦 [2/6] Updating Lighter & Extended SDKs..."
+source "$VENV_PATH"
+
+# Update the Extended SDK from PyPI
+echo "⏫ Updating Extended SDK (x10-python-trading-starknet)..."
+pip install --upgrade x10-python-trading-starknet >/dev/null 2>&1 && echo "✅ Extended SDK updated."
+
+# Update the Lighter SDK from GitHub
+echo "⏫ Updating Lighter SDK from GitHub..."
+pip install --upgrade git+https://github.com/elliottech/lighter-python.git >/dev/null 2>&1 && echo "✅ Lighter SDK updated."
+
+# -----------------------------
+# STEP 4 — Backend & Frontend dependencies
+# -----------------------------
+echo ""
+echo "⚙️ [4/6] Installing backend dependencies..."
+cd "$BACKEND_DIR"
+pip install -r requirements.txt --quiet
+echo "✅ Backend dependencies installed."
+
+if [ -f "$FRONTEND_DIR/package.json" ]; then
+    echo ""
+    echo "🧰 Checking frontend dependencies..."
+    cd "$FRONTEND_DIR"
+    npm install --silent
+    echo "🏗️ Building frontend..."
+    npm run build --silent
+    echo "✅ Frontend ready."
+else
+    echo "⚠️ Frontend folder missing or invalid."
+fi
+
+# -----------------------------
+# STEP 5 — Restart backend & frontend
+# -----------------------------
+echo ""
+echo "🧹 [5/6] Restarting backend and frontend screens..."
+
+screen -S "$BACKEND_SCREEN" -X quit 2>/dev/null
+screen -S "$FRONTEND_SCREEN" -X quit 2>/dev/null
+sleep 1
+
+# Start backend
+cd "$BACKEND_DIR"
+echo "▶️ Starting backend in screen: $BACKEND_SCREEN"
+screen -dmS "$BACKEND_SCREEN" bash -c "
+source $VENV_PATH;
+python3 unified_backend.py;
+"
+
+# Start frontend
+cd "$FRONTEND_DIR"
+echo "▶️ Starting frontend in screen: $FRONTEND_SCREEN"
+screen -dmS "$FRONTEND_SCREEN" bash -c '
+npm run dev -- --host;
+'
+
+sleep 2
+
+echo ""
+echo "✅ [6/6] Update complete!"
+echo "   - ArbSpread repo synced"
+echo "   - Lighter SDK (GitHub) refreshed"
+echo "   - Extended SDK (PyPI) upgraded"
+echo "   - Backend & frontend restarted"
+echo ""

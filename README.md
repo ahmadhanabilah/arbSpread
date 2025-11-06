@@ -55,6 +55,7 @@ npm create vite@latest frontend -- --template react
 cd frontend
 npm install
 npm install react-icons
+npm install marked
 ```
 
 ## Need to re-update all files, because frontend is modified by npm
@@ -97,6 +98,15 @@ git add .
 git commit -m "update"
 git push origin main
 ```
+
+
+
+
+
+
+
+
+
 
 ## User's Server Update
 ```bash

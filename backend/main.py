@@ -208,25 +208,36 @@ def printInfos(L, E, minSpread_toEntry):
     spreadEL_TM             = (lask - eask) / eask * 100 if lbid and eask else None  
     spreadEL_MT             = (lbid - ebid) / lbid * 100 if lbid and eask else None
 
+    # --- inventory levels table ---
+    levels_text = ""
+    if MAX_INVENTORY_VALUE > 0 and INV_LEVEL_TO_MULT > 0:
+        INV_STEP_VALUE          = MAX_INVENTORY_VALUE / INV_LEVEL_TO_MULT
+        levels_text             += "\n---\nSpread Averaging\nValue($) MinSpread(%)"
+        for i in range(INV_LEVEL_TO_MULT):
+            vol                 = (i) * INV_STEP_VALUE
+            spread              = MIN_SPREAD * (SPREAD_MULTIPLIER ** i)
+            levels_text         += f"\n{vol:>7.0f} {spread:.2f}"
+
     line = (
         f"---"
         f'|L:{L.pair["symbol"]} E:{E.pair["symbol"]}'
         f"|---"
         f"|Orderbook Data"
-        f"|SpreadLE: [TT:{spreadLE_TT:.2f}%] [TM:{spreadLE_TM:.2f}%] [MT:{spreadLE_MT:.2f}%]"
-        f"|SpreadEL: [TT:{spreadEL_TT:.2f}%] [TM:{spreadEL_TM:.2f}%] [MT:{spreadEL_MT:.2f}%]"
-        f"|L:{L.ob}"
-        f"|E:{E.ob}"
+        f"|SpreadLE : [TT:{spreadLE_TT:.2f}%] [TM:{spreadLE_TM:.2f}%] [MT:{spreadLE_MT:.2f}%]"
+        f"|SpreadEL : [TT:{spreadEL_TT:.2f}%] [TM:{spreadEL_TM:.2f}%] [MT:{spreadEL_MT:.2f}%]"
+        f"|L        : {L.ob}"
+        f"|E        : {E.ob}"
         f"|---"
         f"|Funding Rate"
-        f"|Net LE  : {fmt_rate(L.currFundRate, E.currFundRate)}"
-        f"|Net EL  : {fmt_rate(E.currFundRate, L.currFundRate)}"
+        f"|Net LE   : {fmt_rate(L.currFundRate, E.currFundRate)}"
+        f"|Net EL   : {fmt_rate(E.currFundRate, L.currFundRate)}"
         f"|---"
         f"|Inventory"
-        f"|Δ       : {spreadInv:.2f}% => Bot is Looking For {minSpread_toEntry:.2f}% to Entry"
-        f"|Dir     : {dir}"
-        f"|qtyL    : {l_qty} @ {l_entry_price} / ${(l_qty*l_entry_price):.2f}"
-        f"|qtyE    : {e_qty} @ {e_entry_price} / ${(e_qty*e_entry_price):.2f}"
+        f"|Δ        : {spreadInv:.2f}% => Bot is Looking For {minSpread_toEntry:.2f}% to Entry"
+        f"|Dir      : {dir}"
+        f"|qtyL     : {l_qty} @ {l_entry_price} / ${(l_qty*l_entry_price):.2f}"
+        f"|qtyE     : {e_qty} @ {e_entry_price} / ${(e_qty*e_entry_price):.2f}"
+        f"{levels_text}"
         f"|---"
         f"|Config"
         f"|TRADES_INTERVAL       : {TRADES_INTERVAL}s"
