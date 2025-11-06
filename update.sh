@@ -7,7 +7,7 @@ BACKEND_SCREEN="web-backend"
 FRONTEND_SCREEN="web-frontend"
 BACKEND_DIR="$REPO_DIR/backend"
 FRONTEND_DIR="$REPO_DIR/frontend"
-VENV_PATH="/home/hanabilx/nodevenv/konekter_v3/18/bin/activate"
+VENV_PATH="/root/arbSpread/.venv/bin/activate"
 
 echo ""
 echo "🔄 [1/6] Pulling latest ArbSpread repo..."
