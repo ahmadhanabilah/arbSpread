@@ -2,7 +2,7 @@
 # === ArbSpread Auto Updater & Restarter ===
 # Usage: bash update.sh
 
-REPO_DIR="/arbSpread"
+REPO_DIR="/root/arbSpread"
 BACKEND_SCREEN="web-backend"
 FRONTEND_SCREEN="web-frontend"
 BACKEND_DIR="$REPO_DIR/backend"
@@ -30,27 +30,6 @@ pip install --upgrade x10-python-trading-starknet >/dev/null 2>&1 && echo "✅ E
 # Update the Lighter SDK from GitHub
 echo "⏫ Updating Lighter SDK from GitHub..."
 pip install --upgrade git+https://github.com/elliottech/lighter-python.git >/dev/null 2>&1 && echo "✅ Lighter SDK updated."
-
-# -----------------------------
-# STEP 3 — Backend & Frontend dependencies
-# -----------------------------
-echo ""
-echo "⚙️ [4/6] Installing backend dependencies..."
-cd "$BACKEND_DIR"
-pip install -r requirements.txt --quiet
-echo "✅ Backend dependencies installed."
-
-if [ -f "$FRONTEND_DIR/package.json" ]; then
-    echo ""
-    echo "🧰 Checking frontend dependencies..."
-    cd "$FRONTEND_DIR"
-    npm install --silent
-    echo "🏗️ Building frontend..."
-    npm run build --silent
-    echo "✅ Frontend ready."
-else
-    echo "⚠️ Frontend folder missing or invalid."
-fi
 
 # -----------------------------
 # STEP 4 — Restart backend & frontend
