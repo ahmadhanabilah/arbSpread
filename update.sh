@@ -62,7 +62,7 @@ python3 unified_backend.py;
 cd "$FRONTEND_DIR"
 echo "▶️ Starting frontend in screen: $FRONTEND_SCREEN"
 screen -dmS "$FRONTEND_SCREEN" bash -c '
-npm run dev -- --host;
+npm run dev -- --host --port 3000;
 '
 
 sleep 2
