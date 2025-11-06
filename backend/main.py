@@ -1,4 +1,4 @@
-import sys
+import sys, time
 import asyncio
 import logging
 import os
@@ -164,6 +164,59 @@ async def balance_positions(L, E):
 
     await send_tele_crit        (msg)            
     await asyncio.sleep         (1)
+
+# Keep a global or static tracker of imbalance status
+_last_balance_state = {}  # key: (symbolL, symbolE), value: bool (True=imbalanced, False=balanced)
+
+async def balance_positions(L, E):
+    global _last_balance_state
+    l_qty, e_qty, l_entry, e_entry = calc_inv(L, E)
+
+    pair_key = (L.pair["symbol"], E.pair["symbol"])
+
+    # --- Determine balance status ---
+    currently_balanced = abs(l_qty + e_qty) < 1e-8
+
+    # --- Transition 1: Imbalanced for the first time ---
+    if not currently_balanced:
+        if not _last_balance_state.get(pair_key, False):
+            msg = (
+                f'⚠️ {L.pair["symbol"]} is Unbalanced !!!\n'
+                f'Lighter {L.pair["symbol"]}: {L.accountData["qty"]}\n'
+                f'Extended {E.pair["symbol"]}: {E.accountData["qty"]}\n'
+                f'(at {time.strftime("%d-%m-%Y %H:%M:%S")})'
+            )
+            await send_tele_crit(msg)
+            _last_balance_state[pair_key] = True  # mark as unbalanced
+
+        await asyncio.gather(L.loadPos(), E.loadPos())
+        return False  # still unbalanced → return
+
+    # --- Transition 2: Became balanced again ---
+    if _last_balance_state.get(pair_key, False):
+        msg = (
+            f'✅ {L.pair["symbol"]} is Balanced Again\n'
+            f'Lighter {L.pair["symbol"]}: {L.accountData["qty"]}\n'
+            f'Extended {E.pair["symbol"]}: {E.accountData["qty"]}\n'
+            f'(at {time.strftime("%d-%m-%Y %H:%M:%S")})'
+        )
+        await send_tele_crit(msg)
+
+    # Update state to balanced
+    _last_balance_state[pair_key] = False
+    return True
+
+
+
+
+
+
+
+
+
+
+
+
     
 def fmt_rate(a, b):
     if a is None or b is None:
@@ -327,9 +380,12 @@ async def main(symbolL, symbolE, cfg):
 
 
         # Balance check
-        if l_qty + e_qty != 0:
-            await balance_positions(L, E)
+        balanced = await balance_positions(L, E)
+        if not balanced:
+            # still unbalanced → skip trading until user fixes it
+            await asyncio.sleep(3)
             continue
+
 
 
 
@@ -538,7 +594,7 @@ if __name__ == "__main__":
         symbolE             = sys.argv[2]
         setup_logger        (symbolL, symbolE)
         configs             = load_config()
-        cfg                 = next((item for item in configs["symbols"] if item["symbolL"] == symbolL), None)
+        cfg                 = next((item for item in configs["symbols"] if item["SYMBOL_LIGHTER"] == symbolL), None)
 
         if cfg is None:
             logging.info(f"❌ Symbol {symbolL} not found in config.json")

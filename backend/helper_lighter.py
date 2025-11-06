@@ -9,6 +9,9 @@ from lighter import WsClient
 from decimal import Decimal
 from dotenv import load_dotenv
 from helpers import HELPERS
+
+from telegram_api import send_telegram_message, send_tele_crit
+
 load_dotenv()
 
 logger                          = logging.getLogger("helper_lighter")
@@ -268,7 +271,9 @@ class LighterAPI:
                 if attempt < max_retries:
                     await asyncio.sleep(delay)
                 else:
-                    logger.error("❌ Final failure after all retries")
+                    msg                 = '❌ [Lighter] PlaceMarketOrder Failed after all retries'
+                    await send_tele_crit(msg)
+                    logger.error        (msg)
                     return return_msg + "• FAILED after all retries"
 
 
@@ -415,7 +420,9 @@ class LighterAPI:
                 if attempt < max_retries:
                     await asyncio.sleep(delay)
                 else:
-                    logger.error("❌ Final failure after all retries")
+                    msg                 = '❌ [Lighter] PlaceMarketOrder Failed after all retries'
+                    await send_tele_crit(msg)
+                    logger.error        (msg)
                     return return_msg + "• FAILED after all retries"
     
 

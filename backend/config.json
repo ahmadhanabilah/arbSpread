@@ -1,8 +1,8 @@
 {
   "symbols": [
     {
-      "symbolL": "MEGA",
-      "symbolE": "MEGA-USD",
+      "SYMBOL_LIGHTER": "MEGA",
+      "SYMBOL_EXTENDED": "MEGA-USD",
       "TRADES_INTERVAL": 1,
       "MIN_SPREAD": 0.5,
       "SPREAD_MULTIPLIER": 2,
@@ -15,8 +15,8 @@
       "PERC_OF_OB": 50
     },
     {
-      "symbolL": "MON",
-      "symbolE": "MON-USD",
+      "SYMBOL_LIGHTER": "MON",
+      "SYMBOL_EXTENDED": "MON-USD",
       "TRADES_INTERVAL": 1,
       "MIN_SPREAD": 0.7,
       "SPREAD_MULTIPLIER": 2.1,
@@ -29,8 +29,8 @@
       "PERC_OF_OB": 50
     },
     {
-      "symbolL": "MNT",
-      "symbolE": "MNT-USD",
+      "SYMBOL_LIGHTER": "MNT",
+      "SYMBOL_EXTENDED": "MNT-USD",
       "MIN_SPREAD": 0.15,
       "SPREAD_MULTIPLIER": 1.5,
       "SPREAD_TP": 0,
@@ -43,31 +43,31 @@
       "TRADES_INTERVAL": 1
     },
     {
-      "symbolL": "RESOLV",
-      "symbolE": "RESOLV-USD",
-      "MIN_SPREAD": 1.1,
-      "SPREAD_MULTIPLIER": 1.5,
-      "SPREAD_TP": 0.15,
+      "SYMBOL_LIGHTER": "RESOLV",
+      "SYMBOL_EXTENDED": "RESOLV-USD",
+      "MIN_SPREAD": 0.3,
+      "SPREAD_MULTIPLIER": 2,
+      "SPREAD_TP": 0.3,
       "MIN_TRADE_VALUE": 20,
       "MAX_TRADE_VALUE_ENTRY": 100,
       "MAX_TRADE_VALUE_EXIT": 100,
       "MAX_INVENTORY_VALUE": 3000,
       "PERC_OF_OB": 10,
-      "INV_LEVEL_TO_MULT": 1,
+      "INV_LEVEL_TO_MULT": 3,
       "TRADES_INTERVAL": 1
     },
     {
-      "symbolL": "XAU",
-      "symbolE": "XAU-USD",
-      "MIN_SPREAD": 0.08,
-      "SPREAD_MULTIPLIER": 2,
-      "SPREAD_TP": 0.08,
-      "MIN_TRADE_VALUE": 20,
+      "SYMBOL_LIGHTER": "NEW",
+      "SYMBOL_EXTENDED": "NEW-USD",
+      "MIN_SPREAD": 0.3,
+      "SPREAD_MULTIPLIER": 1.1,
+      "SPREAD_TP": 0.2,
+      "MIN_TRADE_VALUE": 100,
       "MAX_TRADE_VALUE_ENTRY": 200,
       "MAX_TRADE_VALUE_EXIT": 200,
-      "MAX_INVENTORY_VALUE": 500,
+      "MAX_INVENTORY_VALUE": 1000,
       "PERC_OF_OB": 30,
-      "INV_LEVEL_TO_MULT": 2,
+      "INV_LEVEL_TO_MULT": 5,
       "TRADES_INTERVAL": 1
     }
   ]

@@ -140,7 +140,7 @@ class EnvPayload(BaseModel):
 @app.get("/api/symbols", dependencies=[Depends(require_auth)])
 async def get_symbols():
     cfg = read_json(CONFIG_PATH)
-    syms = [{"symbolL": s["symbolL"], "symbolE": s["symbolE"]} for s in cfg.get("symbols", [])]
+    syms = [{"symbolL": s["SYMBOL_LIGHTER"], "symbolE": s["SYMBOL_EXTENDED"]} for s in cfg.get("symbols", [])]
     return {"symbols": syms, "running": list_running_screens()}
 
 @app.post("/api/start", dependencies=[Depends(require_auth)])

@@ -40,7 +40,7 @@
 /* RESPONSIVE ADJUSTMENTS */
 /* ---------------------------------------------------- */
 
-@media (max-width: 1024px) {
+@media (max-width: 724px) {
     .navigator {
         margin: 8% 8% 2% 8%;
         flex-wrap: wrap;

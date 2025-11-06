@@ -15,6 +15,8 @@ from x10.perpetual.trading_client import PerpetualTradingClient
 from x10.perpetual.stream_client import PerpetualStreamClient
 from x10.perpetual.simple_client.simple_trading_client import BlockingTradingClient
 
+from telegram_api import send_telegram_message, send_tele_crit
+
 logger                          = logging.getLogger("helper_exended")
 logger.setLevel                 (logging.INFO)
 load_dotenv                     ()
@@ -190,59 +192,10 @@ class ExtendedAPI:
                 if attempt < max_retries:
                     await asyncio.sleep(delay)
                 else:
-                    logger.error("❌ Final failure after all retries")
+                    msg                 = '❌ [Extended] PlaceMarketOrder Failed after all retries'
+                    await send_tele_crit(msg)
+                    logger.error        (msg)
                     return return_msg + "• FAILED after all retries"
-
-
-
-    # async def placeMarketOrder(self, side: str, qty: float, isReduceOnly):
-    #     try:
-    #         if side == "BUY":
-    #             price                   = self.ob["askPrice"] * (1 + self.config["slippage"])
-    #             price                   = HELPERS.extGetAllowedNum(price, self.pair["min_price_change"])
-    #             price                   = Decimal(str(price))
-    #             fixQty                  = HELPERS.extendedFmtDecimal(qty, self.pair["asset_precision"])
-    #             fixQty                  = Decimal(str(fixQty))
-    #             logger.info(f"🔃 PlacingMarketOrder Args[side, qty, worstPrice] ⭢ [{side}, {fixQty}, {price}]")
-    #             start_time              = time.perf_counter()
-    #             order                   = await self.client.place_order(
-    #                 amount_of_synthetic = fixQty,
-    #                 price               = price,
-    #                 market_name         = self.pair["symbol"],
-    #                 side                = ExtendedOrderSide.BUY,
-    #                 post_only           = False,
-    #                 reduce_only         = True if isReduceOnly else False
-    #             )
-    #             end_time                = time.perf_counter()
-    #             latency_ms              = (end_time - start_time) * 1000
-    #             logger.info(f"✅ Buy Placed | ⏱ Latency: {latency_ms:.2f} ms")
-
-    #         elif side == "SELL":
-    #             price                   = self.ob["bidPrice"] * (1 - self.config["slippage"])
-    #             price                   = HELPERS.extGetAllowedNum(price, self.pair["min_price_change"])
-    #             price                   = Decimal(str(price))
-    #             fixQty                  = HELPERS.extendedFmtDecimal(qty, self.pair["asset_precision"])
-    #             fixQty                  = Decimal(str(fixQty))
-    #             logger.info(f"🔃 PlacingMarketOrder Args[side, qty, worstPrice] ⭢ [{side}, {fixQty}, {price}]")
-    #             start_time              = time.perf_counter()
-    #             order                   = await self.client.place_order(
-    #                 amount_of_synthetic = fixQty,
-    #                 price               = price,
-    #                 market_name         = self.pair["symbol"],
-    #                 side                = ExtendedOrderSide.SELL,
-    #                 post_only           = False,
-    #                 reduce_only         = True if isReduceOnly else False
-    #             )
-    #             end_time                = time.perf_counter()
-    #             latency_ms              = (end_time - start_time) * 1000
-    #             logger.info(f"✅ Buy Placed | ⏱ Latency: {latency_ms:.2f} ms")
-
-    #         return order
-
-    #     except Exception as e:
-    #         HELPERS.record_error(f'Extended MarketOrder Error:{e}')
-    #         return None
-
 
     async def placeOrder(self, side: str, price: float, qty: float, max_retries=10, delay=0.5):
         if side.upper() == "BUY":
@@ -285,7 +238,9 @@ class ExtendedAPI:
                 if attempt < max_retries:
                     await asyncio.sleep(delay)
                 else:
-                    logger.error("❌ Final failure after all retries")
+                    msg                 = '❌ [Extended] PlaceMarketOrder Failed after all retries'
+                    await send_tele_crit(msg)
+                    logger.error        (msg)
                     return return_msg + "• FAILED after all retries"
 
     async def cancelOrders(self):
