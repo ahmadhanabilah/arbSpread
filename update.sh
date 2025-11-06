@@ -2,7 +2,7 @@
 # === ArbSpread Auto Updater & Restarter ===
 # Usage: bash update.sh
 
-REPO_DIR="/home/hanabilx/arbSpread"
+REPO_DIR="/arbSpread"
 BACKEND_SCREEN="web-backend"
 FRONTEND_SCREEN="web-frontend"
 BACKEND_DIR="$REPO_DIR/backend"
@@ -32,7 +32,7 @@ echo "⏫ Updating Lighter SDK from GitHub..."
 pip install --upgrade git+https://github.com/elliottech/lighter-python.git >/dev/null 2>&1 && echo "✅ Lighter SDK updated."
 
 # -----------------------------
-# STEP 4 — Backend & Frontend dependencies
+# STEP 3 — Backend & Frontend dependencies
 # -----------------------------
 echo ""
 echo "⚙️ [4/6] Installing backend dependencies..."
@@ -53,8 +53,13 @@ else
 fi
 
 # -----------------------------
-# STEP 5 — Restart backend & frontend
+# STEP 4 — Restart backend & frontend
 # -----------------------------
+echo "🧨 Killing all running screen sessions..."
+screen -ls | awk '/Detached|Attached/ {print $1}' | xargs -r -n 1 screen -S {} -X quit
+sleep 1
+echo "✅ All screens terminated."
+
 echo ""
 echo "🧹 [5/6] Restarting backend and frontend screens..."
 
