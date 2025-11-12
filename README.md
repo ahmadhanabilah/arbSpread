@@ -94,9 +94,9 @@ Your environment is now ready to run the project.
 
 ## Github Repo Update by Owner
 ```bash
-git add .
-git commit -m "update"
-git push origin main
+git add --all
+git commit -m "overwrite repo with local files"
+git push origin main --force
 ```
 
 

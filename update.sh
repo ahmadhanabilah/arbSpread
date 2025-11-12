@@ -4,6 +4,7 @@
 
 REPO_DIR="/root/arbSpread"
 BACKEND_SCREEN="web-backend"
+BACKEND_DATA_SCREEN="web-backend-data"
 FRONTEND_SCREEN="web-frontend"
 BACKEND_DIR="$REPO_DIR/backend"
 FRONTEND_DIR="$REPO_DIR/frontend"
@@ -32,8 +33,9 @@ echo "⏫ Updating Lighter SDK from GitHub..."
 pip install --upgrade git+https://github.com/elliottech/lighter-python.git >/dev/null 2>&1 && echo "✅ Lighter SDK updated."
 
 # -----------------------------
-# STEP 4 — Restart backend & frontend
+# STEP 3 — Restart backend & frontend
 # -----------------------------
+echo ""
 echo "🧨 Killing all running screen sessions..."
 screen -ls | grep -Eo '[0-9]+\.[^[:space:]]+' | while read -r session; do
     echo "   🔪 Killing $session"
@@ -42,15 +44,28 @@ done
 sleep 1
 echo "✅ All screens terminated."
 
-# Start backend
+# -----------------------------
+# STEP 4 — Start unified_backend.py
+# -----------------------------
 cd "$BACKEND_DIR"
-echo "▶️ Starting backend in screen: $BACKEND_SCREEN"
+echo "▶️ Starting backend (unified) in screen: $BACKEND_SCREEN"
 screen -dmS "$BACKEND_SCREEN" bash -c "
 source $VENV_PATH;
 python3 unified_backend.py;
 "
 
-# Start frontend
+# -----------------------------
+# STEP 5 — Start data_backend.py
+# -----------------------------
+echo "▶️ Starting data backend in screen: $BACKEND_DATA_SCREEN"
+screen -dmS "$BACKEND_DATA_SCREEN" bash -c "
+source $VENV_PATH;
+python3 data_backend.py;
+"
+
+# -----------------------------
+# STEP 6 — Start frontend
+# -----------------------------
 cd "$FRONTEND_DIR"
 echo "▶️ Starting frontend in screen: $FRONTEND_SCREEN"
 screen -dmS "$FRONTEND_SCREEN" bash -c '
@@ -64,5 +79,9 @@ echo "✅ [6/6] Update complete!"
 echo "   - ArbSpread repo synced"
 echo "   - Lighter SDK (GitHub) refreshed"
 echo "   - Extended SDK (PyPI) upgraded"
-echo "   - Backend & frontend restarted"
+echo "   - Backends & frontend restarted"
+echo "   - 🧩 Running screens:"
+echo "       * $BACKEND_SCREEN → unified_backend.py"
+echo "       * $BACKEND_DATA_SCREEN → data_backend.py"
+echo "       * $FRONTEND_SCREEN → frontend (port 3000)"
 echo ""
