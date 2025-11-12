@@ -9,9 +9,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-from helper_lighter_web import LighterAPI
-from helper_extended_web import ExtendedAPI
-from telegram_api import send_telegram_message
+from db_lig.main import processDbLig
+from db_ext.main import processDbExt
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -29,8 +28,8 @@ def require_auth(credentials: HTTPBasicCredentials = Depends(security)):
     return True
 
 # --- Paths ---
-CONFIG_PATH = "config.json"
-ENV_PATH = ".env"
+CONFIG_PATH     = "spread_bot/config.json"
+ENV_PATH        = ".env"
 
 # --- App Init ---
 app = FastAPI(title="arbSpread Unified Backend")
@@ -100,13 +99,24 @@ def list_running_screens():
 
 def start_screen(symbolL: str, symbolE: str):
     session_name = f"arb_{symbolL}_{symbolE}"
+
     running = list_running_screens()
-    if session_name in running:
+    if any(session_name in s for s in running):
         return False
 
-    cmd = ["screen", "-dmS", session_name, "python3", "-u", "main.py", symbolL, symbolE]
+    # absolute paths
+    backend_dir = os.path.dirname(os.path.abspath(__file__))        # /root/arbSpread/backend
+    bot_path = os.path.join(backend_dir, "spread_bot", "main.py")   # /root/arbSpread/backend/spread_bot/main.py
+
+    cmd = [
+        "screen", "-dmS", session_name,
+        "bash", "-c",
+        f"cd {backend_dir} && python3 -u {bot_path} {symbolL} {symbolE}"
+    ]
+
     subprocess.run(cmd, check=False)
     return True
+
 
 def stop_screen(symbolL: str, symbolE: str):
     try:
@@ -170,23 +180,6 @@ async def save_env(payload: EnvPayload):
     write_text(ENV_PATH, payload.text)
     return {"ok": True}
 
-@app.post("/api/test-credentials", dependencies=[Depends(require_auth)])
-async def test_credentials():
-    symbol = "BTC"
-    qty = 0.0001
-    L, E = LighterAPI(), ExtendedAPI()
-    await asyncio.gather(L.init(), E.init(), L.getAllSymbols())
-    logs = []
-    try:
-        l_buy = await L.client.create_order  # dummy call placeholder
-        logs.append("✅ Credential test simulated.")
-    except Exception as e:
-        logs.append(f"❌ Error: {e}")
-    await send_telegram_message("🧪 Credential Test Result:\n" + "\n".join(logs))
-    return {"ok": True, "logs": logs}
-
-
-
 
 # =====================================================
 # ================ DATA ROUTES ========================
@@ -196,21 +189,90 @@ async def auth_check():
     """Simple endpoint to verify username/password"""
     return {"ok": True}
 
-@app.get("/get_ext")
-async def get_ext():
-    return _read_csv_json("trades_merged_ext.csv")
+from typing import List, Optional
+from fastapi import Query, HTTPException
+import os, csv
+from datetime import datetime
 
-@app.get("/get_lig")
-async def get_lig():
-    return _read_csv_json("trades_merged_lig.csv")
+# --- existing helper (unchanged) ---
+def _read_csv_json(path: str, limit: Optional[int] = None):
+    if not os.path.exists(path):
+        return []
+    rows = []
+    with open(path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for i, row in enumerate(reader):
+            rows.append(row)
+            if limit and i + 1 >= limit:
+                break
+    return rows
 
-@app.get("/get_pnl_ext")
-async def get_pnl_ext():
-    return _read_csv_json("trades_daily_pnl_ext.csv")
+# --- NEW: read multiple files & optional sort by readable_time desc ---
+def _read_csv_multi(paths: List[str], limit: Optional[int] = None, sort_desc_by_time: bool = True):
+    agg: List[dict] = []
+    for p in paths:
+        if os.path.exists(p):
+            agg.extend(_read_csv_json(p, limit=None))
+    if sort_desc_by_time:
+        # robust parse of "YYYY-MM-DD HH:MM:SS" if present; empty times float to top
+        def _key(r):
+            ts = r.get("readable_time") or r.get("exit_time") or r.get("entry_time") or ""
+            try:
+                dt = datetime.strptime(ts.strip(), "%Y-%m-%d %H:%M:%S") if ts else None
+            except Exception:
+                dt = None
+            # None should come first; then later times first (desc)
+            return (dt is not None, dt or datetime.min)
+        agg.sort(key=_key, reverse=True)
+    if limit:
+        agg = agg[:limit]
+    return agg
 
-@app.get("/get_pnl_lig")
-async def get_pnl_lig():
-    return _read_csv_json("trades_daily_pnl_lig.csv")
+def _paths_for(side: str, kind: str, symbols: Optional[List[str]]) -> List[str]:
+    """
+    side: 'ext' | 'lig'
+    kind: 'fifo' | 'cycle'
+    symbols: list of symbol strings (e.g., ["BTC-USD", "ETH-USD"]) or None
+    """
+    base = f"db_{'ext' if side=='ext' else 'lig'}/{kind}"
+    if not symbols:
+        return [f"{base}/_allSymbols.csv"]
+    paths = []
+    for s in symbols:
+        sym = str(s).strip().upper()
+        if not sym:
+            continue
+        # very light sanitization; adjust if your symbols can include other chars
+        sym = sym.replace("/", "-")
+        paths.append(f"{base}/_{sym}.csv")
+    return paths
+
+
+
+@app.get("/get_trades_fifo_ext")
+async def get_trades_fifo_ext():
+    return _read_csv_json("db_ext/fifo/_allSymbols.csv", limit=200)
+
+@app.get("/get_trades_cycle_ext")
+async def get_trades_cycle_ext():
+    return _read_csv_json("db_ext/cycle/_allSymbols.csv", limit=200)
+
+@app.get("/get_trades_fifo_lig")
+async def get_trades_fifo_lig():
+    return _read_csv_json("db_lig/fifo/_allSymbols.csv", limit=200)
+
+@app.get("/get_trades_cycle_lig")
+async def get_trades_cycle_lig():
+    return _read_csv_json("db_lig/cycle/_allSymbols.csv", limit=200)
+
+
+@app.get("/get_daily_ext")
+async def get_daily_ext():
+    return _read_csv_json("db_ext/fifo/_daily.csv")
+@app.get("/get_daily_lig")
+async def get_daily_lig():
+    return _read_csv_json("db_lig/fifo/_daily.csv")
+
 
 from fastapi import Request
 from fastapi.responses import StreamingResponse
@@ -218,8 +280,7 @@ import asyncio
 
 @app.get("/api/live_stream/{symbolL}/{symbolE}", dependencies=[Depends(require_auth)])
 async def stream_live(request: Request, symbolL: str, symbolE: str):
-    """Stream live.txt updates in real-time using Server-Sent Events (SSE)."""
-    live_path = f"logs/{symbolL}_{symbolE}_live.txt"
+    live_path = f"spread_bot/logs/{symbolL}_{symbolE}_live.txt"
 
     async def event_stream():
         last_line = None
@@ -246,7 +307,7 @@ async def stream_live(request: Request, symbolL: str, symbolE: str):
 
 @app.get("/api/logs/{symbolL}/{symbolE}", dependencies=[Depends(require_auth)])
 async def get_logs(symbolL: str, symbolE: str, lines: int = 100):
-    log_path = f"logs/{symbolL}_{symbolE}.log"
+    log_path = f"spread_bot/logs/{symbolL}_{symbolE}.log"
     if not os.path.exists(log_path):
         return PlainTextResponse(f"No log file found for {symbolL}_{symbolE}", status_code=404)
     try:
@@ -256,42 +317,6 @@ async def get_logs(symbolL: str, symbolE: str, lines: int = 100):
     except Exception as e:
         return PlainTextResponse(f"Error reading log: {e}", status_code=500)
 
-
-
-
-
-
-def _read_csv_json(filename):
-    if not os.path.exists(filename):
-        return JSONResponse({"error": f"{filename} not found"}, status_code=404)
-    with open(filename, newline="", encoding="utf-8") as f:
-        return list(csv.DictReader(f))
-
-# =====================================================
-# ================ BACKGROUND JOB =====================
-# =====================================================
-
-async def background_sync():
-    EXT = ExtendedAPI()
-    LIG = LighterAPI()
-    await asyncio.gather(EXT.init(), LIG.init())
-    while True:
-        try:
-            await EXT.getTrades()
-            EXT.mergeTrades()
-            EXT.calculateDailyPnL()
-
-            await LIG.getTrades()
-            LIG.mergeTrades()
-            LIG.calculateDailyPnL()
-            logger.info("✅ Background data sync complete.")
-        except Exception as e:
-            logger.error(f"⚠️ Sync error: {e}")
-        await asyncio.sleep(10)
-
-@app.on_event("startup")
-async def start_background_task():
-    asyncio.create_task(background_sync())
 
 # =====================================================
 # ================ RUN ================================

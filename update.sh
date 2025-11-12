@@ -42,14 +42,6 @@ done
 sleep 1
 echo "✅ All screens terminated."
 
-
-echo ""
-echo "🧹 [5/6] Restarting backend and frontend screens..."
-
-screen -S "$BACKEND_SCREEN" -X quit 2>/dev/null
-screen -S "$FRONTEND_SCREEN" -X quit 2>/dev/null
-sleep 1
-
 # Start backend
 cd "$BACKEND_DIR"
 echo "▶️ Starting backend in screen: $BACKEND_SCREEN"

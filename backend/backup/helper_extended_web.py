@@ -1,3 +1,4 @@
+
 from collections import defaultdict
 from datetime import datetime
 import csv
@@ -14,6 +15,7 @@ from x10.perpetual.configuration import MAINNET_CONFIG
 from x10.perpetual.orders import OrderSide as ExtendedOrderSide
 from x10.perpetual.trading_client import PerpetualTradingClient
 from x10.perpetual.stream_client import PerpetualStreamClient
+from x10.utils.http import send_get_request
 
 logger                          = logging.getLogger("helper_exended")
 logger.setLevel                 (logging.INFO)
@@ -56,10 +58,144 @@ class ExtendedAPI:
             raise Exception(f"Failed to fetch market info: {data}")
 
         self.allSymbols = [market["name"] for market in data["data"] if market.get("active")]
+
+
+    # async def getFundingPayment(self, start_time=None, end_time=None, cursor=None, limit=None):
+    #     url = self.client.account._get_url(
+    #         "/user/funding/history",
+    #         query={
+    #             "market": [self.allSymbols],
+    #             "fromTime": 0,  # or set dynamically if needed
+    #             "limit": 10000,
+    #             "cursor":cursor?? need this handler                
+    #         },
+    #     )
+
+    #     # Create folder if missing
+    #     os.makedirs("database", exist_ok=True)
+    #     filename = "database/fundings_ext.csv"
+
+    #     # --- Fetch data ---
+    #     session = await self.client.account.get_session()
+    #     res = await send_get_request(
+    #         session,
+    #         url,
+    #         list,  # return raw list of dicts
+    #         api_key=self.client.account._get_api_key(),
+    #     )
+
+    #     data = res.data or []
+
+    #     if not data:
+    #         logger.warning("⚠️ No funding data returned.")
+    #         return
+
+    #     # --- Save to CSV ---
+    #     # Normalize fieldnames from the first item
+    #     fieldnames = list(data[0].keys())
+
+    #     write_header = not os.path.exists(filename)
+
+    #     with open(filename, "w", newline="", encoding="utf-8") as f:
+    #         writer = csv.DictWriter(f, fieldnames=fieldnames)
+    #         writer.writeheader()
+    #         writer.writerows(data)
+
+    #     logger.info(f"✅ Saved {len(data)} funding records → {filename}")
+
+
+    async def getFundingPayment(self, start_time=None, end_time=None, cursor=None, limit=10000):
+        """
+        Fetch all funding history with pagination and save to CSV incrementally.
+        """
+        filename = "database/fundings_ext.csv"
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+
+        all_fundings = []
+        newest_timestamp = 0
+
+        # --- Step 1: Determine latest timestamp from CSV ---
+        if os.path.exists(filename):
+            with open(filename, newline="", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    ts = row.get("timestamp") or row.get("created_time")
+                    if ts and str(ts).isdigit():
+                        newest_timestamp = max(newest_timestamp, int(ts))
+            logger.info(f"[ExtendedAPI] Found existing funding file → newest timestamp: {newest_timestamp}")
+        else:
+            logger.info("[ExtendedAPI] No existing funding file found → full fetch.")
+
+        # --- Step 2: Pagination loop ---
+        while True:
+            url = self.client.account._get_url(
+                "/user/funding/history",
+                query={
+                    "market": [self.allSymbols],
+                    "fromTime": newest_timestamp if newest_timestamp > 0 else 0,
+                    "cursor": cursor,
+                    "limit": limit,
+                },
+            )
+
+            session = await self.client.account.get_session()
+            res = await send_get_request(
+                session,
+                url,
+                list,
+                api_key=self.client.account._get_api_key(),
+            )
+
+            data = getattr(res, "data", []) or []
+            if not data:
+                logger.info("[ExtendedAPI] No more funding data; stopping pagination.")
+                break
+
+            all_fundings.extend(data)
+            logger.info(f"[ExtendedAPI] Retrieved {len(data)} fundings (total {len(all_fundings)})")
+
+            # --- Pagination handler ---
+            cursor = None
+            if hasattr(res, "pagination") and res.pagination:
+                cursor = getattr(res.pagination, "next", None)
+            if not cursor and len(data) == limit:
+                cursor = data[-1].get("id") or data[-1].get("timestamp")
+
+            if not cursor:
+                break
+
+            await asyncio.sleep(0.1)
+
+        if not all_fundings:
+            logger.info("[ExtendedAPI] No new funding records to append.")
+            return
+
+        # --- Step 3: Merge and deduplicate ---
+        combined_map = {}
+        for f in all_fundings:
+            key = f.get("id") or f.get("timestamp")
+            if key:
+                combined_map[key] = f
+
+        # Convert back to list, sort by timestamp desc
+        combined = list(combined_map.values())
+        combined.sort(key=lambda x: int(x.get("timestamp", 0)), reverse=True)
+
+        # --- Step 4: Save back ---
+        fieldnames = sorted(set().union(*(d.keys() for d in combined)))
+        with open(filename, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(combined)
+
+        logger.info(f"[ExtendedAPI] ✅ Saved {len(combined)} total fundings (sorted desc) → {filename}")
+
+
+
         
     async def getTrades(self):
         try:
-            filename = "trades_ext.csv"
+            filename = "database/trades_ext.csv"
             limit = 300
             cursor = None
             all_trades = []
@@ -117,7 +253,8 @@ class ExtendedAPI:
                 if not cursor:
                     break
 
-                await asyncio.sleep(0.2)
+                await asyncio.sleep(0.1)
+
 
             # --- Step 3: Save result ---
             if not all_trades:
@@ -125,29 +262,35 @@ class ExtendedAPI:
                 return
 
             trade_dicts = [t.__dict__ for t in all_trades]
-            fieldnames = (
-                existing_fieldnames
-                or sorted(set().union(*(d.keys() for d in trade_dicts)))
-            )
 
-            file_exists = os.path.exists(filename)
-            mode = "a" if file_exists else "w"
+            # ✅ Merge with existing data (if file exists)
+            if os.path.exists(filename):
+                with open(filename, newline="", encoding="utf-8") as f:
+                    reader = csv.DictReader(f)
+                    existing = list(reader)
+                trade_dicts.extend(existing)
 
-            with open(filename, mode, newline="", encoding="utf-8") as f:
+            # ✅ Sort all by created_time descending
+            trade_dicts.sort(key=lambda x: int(x.get("created_time", 0)), reverse=True)
+
+            # ✅ Write everything back (overwrite)
+            fieldnames = sorted(set().union(*(d.keys() for d in trade_dicts)))
+            with open(filename, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
-                if not file_exists:
-                    writer.writeheader()
+                writer.writeheader()
                 writer.writerows(trade_dicts)
 
-            logger.info(f"[ExtendedAPI] ✅ Saved {len(all_trades)} new trades → {filename}")
+            logger.info(f"[ExtendedAPI] ✅ Saved {len(trade_dicts)} total trades (sorted desc) → {filename}")
+
+
 
         except Exception as e:
             logger.error(f"[ExtendedAPI] getTrades() failed: {e}")
 
 
     def mergeTrades(self):
-        input_file  = "trades_ext.csv"
-        output_file = "trades_merged_ext.csv"
+        input_file  = "database/trades_ext.csv"
+        output_file = "database/trades_merged_ext.csv"
 
         trades_by_market = defaultdict(list)
 
@@ -296,8 +439,8 @@ class ExtendedAPI:
 
 
     def calculateDailyPnL(self):
-        input_file      = "trades_merged_ext.csv"
-        output_file     = "trades_daily_pnl_ext.csv"
+        input_file      = "database/trades_merged_ext.csv"
+        output_file     = "database/trades_daily_pnl_ext.csv"
 
         if not os.path.exists(input_file):
             print("❌ trades_ext.csv not found.")

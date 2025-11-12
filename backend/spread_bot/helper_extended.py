@@ -19,7 +19,7 @@ from telegram_api import send_telegram_message, send_tele_crit
 
 logger                          = logging.getLogger("helper_exended")
 logger.setLevel                 (logging.INFO)
-load_dotenv                     ()
+load_dotenv                     ('/root/arbSpread/backend/.env')
 
 class ExtendedAPI:
     def __init__(self, symbol: str):
@@ -142,11 +142,13 @@ class ExtendedAPI:
         except Exception as e:
             logger.error(f"⚠️ Error handling Extended OB update: {e}")
 
-    async def placeMarketOrder(self, side: str, qty: float, isReduceOnly, max_retries=10, delay=0.5):
+    async def placeMarketOrder(self, side: str, qty: float, isReduceOnly, max_retries=1000, delay=0.5):
         ob = self.ob
+        # if not ob or not ob.get("bidPrice") or not ob.get("askPrice"):
+        #     logger.warning("No orderbook data yet, cannot place market order")
+        #     return None
         if not ob or not ob.get("bidPrice") or not ob.get("askPrice"):
-            logger.warning("No orderbook data yet, cannot place market order")
-            return None
+            raise RuntimeError("Orderbook not ready")
 
         # ✅ Determine price & format values
         if side.upper() == "BUY":

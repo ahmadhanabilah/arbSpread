@@ -12,11 +12,9 @@ from helpers import HELPERS
 
 from telegram_api import send_telegram_message, send_tele_crit
 
-load_dotenv()
-
 logger                          = logging.getLogger("helper_lighter")
 logger.setLevel                 (logging.INFO)
-load_dotenv                     ()
+load_dotenv                     ('/root/arbSpread/backend/.env')
 
 class LighterAPI:
     def __init__(self, symbol: str):
@@ -211,14 +209,16 @@ class LighterAPI:
             logger.error(f"Lighter handler error: {e}")
 
             
-    async def placeMarketOrder(self, side: str, order_qty: float, isReduceOnly, max_retries=10, delay=0.5):
+    async def placeMarketOrder(self, side: str, order_qty: float, isReduceOnly, max_retries=1000, delay=0.5):
         market_index            = self.pair["market_id"]
         size_decimals           = self.pair["size_decimals"]
         price_decimals          = self.pair["price_decimals"]
         ob                      = self.ob
+        # if not ob or not ob.get("bidPrice") or not ob.get("askPrice"):
+        #     logger.warning     ("No orderbook data yet, cannot place market order")
+        #     return None
         if not ob or not ob.get("bidPrice") or not ob.get("askPrice"):
-            logger.warning     ("No orderbook data yet, cannot place market order")
-            return None
+            raise RuntimeError("Orderbook not ready")
 
         if side.upper() == "BUY":
             best_ask            = float(ob["askPrice"])
@@ -420,7 +420,7 @@ class LighterAPI:
                 if attempt < max_retries:
                     await asyncio.sleep(delay)
                 else:
-                    msg                 = '❌ [Lighter] PlaceMarketOrder Failed after all retries'
+                    msg                 = '❌ [Lighter] placeOrder Failed after all retries'
                     await send_tele_crit(msg)
                     logger.error        (msg)
                     return return_msg + "• FAILED after all retries"

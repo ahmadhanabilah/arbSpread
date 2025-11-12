@@ -15,8 +15,8 @@ _live_lock = threading.Lock()
 
 def update_live(symbolL, symbolE, text):
     """Keep only the latest live line for this symbol, formatted with newlines."""
-    os.makedirs("logs", exist_ok=True)
-    live_path = f"logs/{symbolL}_{symbolE}_live.txt"
+    os.makedirs("spread_bot/logs", exist_ok=True)
+    live_path = f"spread_bot/logs/{symbolL}_{symbolE}_live.txt"
 
     # Replace "|" with a newline for clearer formatting
     formatted = text.strip().replace("|", "\n")
@@ -43,8 +43,8 @@ class ReverseFileHandler(logging.FileHandler):
             self.handleError(record)
 
 def setup_logger(symbolL, symbolE):
-    os.makedirs("logs", exist_ok=True)
-    log_path = f"logs/{symbolL}_{symbolE}.log"
+    os.makedirs("spread_bot/logs", exist_ok=True)
+    log_path = f"spread_bot/logs/{symbolL}_{symbolE}.log"
 
     # Remove existing handlers
     for h in logging.root.handlers[:]:
@@ -63,13 +63,13 @@ def setup_logger(symbolL, symbolE):
     
 async def restart_bot(symbolL, symbolE, reason):
     logging.info(f"🔁 Restarting bot for {symbolL}_{symbolE}...", )
-    await send_telegram_message(f"⚠️ Restarting bot for symbol {symbolL}_{symbolE}... Reason:{reason}")
+    await send_telegram_message(f"⚠️ Restarting bot for symbol {symbolL}_{symbolE}... Reason: {reason}")
     await asyncio.sleep(1)
     os.execv(sys.executable, ['python3'] + sys.argv)
 
 # Load config.json
 def load_config():
-    with open("config.json", "r") as f:
+    with open("spread_bot/config.json", "r") as f:
         return json.load(f)
 
 load_dotenv()
@@ -106,107 +106,109 @@ async def execute_trade(L, E, sideL, sideE, qty, tradeData, TRADES_INTERVAL):
     logging.info                (f"{label} Done ✅")
 
 
-async def balance_positions(L, E):
-    await asyncio.gather                (L.loadPos(), E.loadPos())
-    await asyncio.sleep                 (1)
-    l_qty, e_qty, l_entry, e_entry      = calc_inv(L, E)
-
-    if abs(l_qty + e_qty) < 1e-8:
-        return False
-
-    # msg = f"⚖️ {E.pair["symbol"]} Balancing positions...\nL={l_qty}, E={e_qty}"
-
-    # # Decide which side has larger absolute position
-    # if abs(l_qty) > abs(e_qty):
-    #     # Lighter has bigger position → reduce L
-    #     qty                     = abs(l_qty + e_qty)
-
-    #     if qty < E.pair["min_size"]:
-    #         msg                 = f"Balancing Paused...\nCalculated qty {qty} is less than min_size {E.pair['min_size']}\nBot Will Sleep 5mins..\nBalance your position manually!!"
-    #         logging.info        (msg_)
-    #         await send_tele_crit(msg_)            
-    #         await asyncio.sleep (300)
-    #         return
-
-    #     if l_qty > 0:
-    #         await HELPERS.safePlaceOrder(L, "SELL", qty, True)
-    #         logging.info        (  f"\n🟠 Reduced L long by {qty}")
-    #         msg                 += f"\n🟠 Reduced L long by {qty}"
-    #     else:
-    #         await HELPERS.safePlaceOrder(L, "BUY" , qty, True)
-    #         logging.info        (  f"\n🟠 Reduced L short by {qty}")
-    #         msg                 += f"\n🟠 Reduced L short by {qty}"
-
-    # else:
-    #     qty                     = abs(l_qty + e_qty)
-    #     if qty < E.pair["min_size"]:
-    #         msg                 = f"Balancing Paused...\nCalculated qty {qty} is less than min_size {E.pair['min_size']}\nBot Will Sleep 5mins..\nBalance your position manually!!"
-    #         logging.info        (msg_)
-    #         await send_tele_crit(msg_)            
-    #         await asyncio.sleep (300)
-    #         return
-
-    #     if e_qty > 0:
-    #         await HELPERS.safePlaceOrder(E, "SELL", qty, True)
-    #         logging.info        (  f"\n🔵 Reduced E long by {qty}")
-    #         msg                 += f"\n🔵 Reduced E long by {qty}"
-    #     else:
-    #         await HELPERS.safePlaceOrder(E, "BUY" , qty, True)
-    #         logging.info        (  f"\n🔵 Reduced E short by {qty}")
-    #         msg                 += f"\n🔵 Reduced E short by {qty}"
-    # msg                         = msg + f"\n✅ Balancing done. \n\nInventory: \nL:{L.accountData["qty"]}, E:{E.accountData["qty"]}, check manually!!\nBot Will Sleep 5mins.."
-
-    msg                         = (f'⚠️ Balance Manually !!! '
-                                   f'Position is Unbalanced\n'
-                                   f'Lighter {L.pair["symbol"]} : {L.accountData["qty"]}\n'
-                                   f'Extended {E.pair["symbol"]} : {E.accountData["qty"]}\n'
-    )                                   
-
-    await send_tele_crit        (msg)            
-    await asyncio.sleep         (1)
-
-# Keep a global or static tracker of imbalance status
-_last_balance_state = {}  # key: (symbolL, symbolE), value: bool (True=imbalanced, False=balanced)
+# ---------------------
+_need_balancing             = False
+_ts_since_need_balancing    = 0.0
+_ts_since_last_action       = 0.0
+_need_report_unbalanced     = False
+_reducing_msg               = ''
 
 async def balance_positions(L, E):
-    global _last_balance_state
-    l_qty, e_qty, l_entry, e_entry = calc_inv(L, E)
+    """
+    Returns True if balanced, False otherwise.
+    """
+    global _need_balancing, _ts_since_need_balancing, _ts_since_last_action, _need_report_unbalanced, _reducing_msg
+    now                 = time.time()
+    l_qty, e_qty, _, _  = calc_inv(L, E)
+    net                 = l_qty + e_qty
 
-    pair_key = (L.pair["symbol"], E.pair["symbol"])
-
-    # --- Determine balance status ---
-    currently_balanced = abs(l_qty + e_qty) < 1e-8
-
-    # --- Transition 1: Imbalanced for the first time ---
-    if not currently_balanced:
-        if not _last_balance_state.get(pair_key, False):
-            msg = (
-                f'⚠️ {L.pair["symbol"]} is Unbalanced !!!\n'
-                f'Lighter {L.pair["symbol"]}: {L.accountData["qty"]}\n'
-                f'Extended {E.pair["symbol"]}: {E.accountData["qty"]}\n'
+    # already balanced
+    if abs(net) < 1e-8:
+        if _need_balancing:
+            _need_balancing = False
+            await send_tele_crit(
+                f'✅ {L.pair["symbol"]} balanced again\n'
+                f'L: {L.accountData["qty"]}  E: {E.accountData["qty"]}\n'
                 f'(at {time.strftime("%d-%m-%Y %H:%M:%S")})'
             )
-            await send_tele_crit(msg)
-            _last_balance_state[pair_key] = True  # mark as unbalanced
+        return True
 
+    # first detection : this will be executed if only not balanced
+    if not _need_balancing:
+        _need_balancing             = True
+        _ts_since_need_balancing    = now
+        logging.info                (f'⚠️ {L.pair["symbol"]} is UNBALANCED')
+        return False 
+
+    # cooldown: 60s since flagged, 60s since last action
+    if (now - _ts_since_need_balancing >= 60.0) and (now - _ts_since_last_action >= 60.0):
+        qty_need                    = abs(net)
+        target                      = "L" if abs(l_qty) >= abs(e_qty) else "E"
+
+        if target == "L":
+            min_size                = L.pair.get("min_size") 
+            if qty_need < min_size:
+                logging.info('⚠️ {L.pair["symbol"]} BOT is STOPPED: balancing_qty is less than Lighter min_size')
+                await send_tele_crit(
+                    f'⚠️ {L.pair["symbol"]} BOT is STOPPED: balancing_qty is less than Lighter min_size\n'
+                    f'Balance manually (reduce-only) then restart.'                    
+                )
+                sys.exit(1)
+
+            side = "SELL" if l_qty > 0 else "BUY"
+            try:
+                await L.placeMarketOrder    (side, float(qty_need), True)
+                logging.info                (f'🟠 Rebalance L: {side} {qty_need:.8f}')
+                _ts_since_last_action       = now
+                _need_report_unbalanced     = True
+                _reducing_msg               = f'✅ Reduced {qty_need:.8f} on Lighter'
+            except Exception as e:
+                logging.error(f'bal L error: {e}')
+                await send_tele_crit(f'❌ bal L error: {e}')
+
+        else:
+            min_size                        = E.pair.get("min_size")
+            if qty_need < min_size:
+                logging.info                ('⚠️ {L.pair["symbol"]} BOT is STOPPED: balancing_qty is less than Lighter min_size')
+                await send_tele_crit        (
+                    f'⚠️ {L.pair["symbol"]} BOT is STOPPED: balancing_qty is less than Extended min_size\n'
+                    f'Balance manually (reduce-only) then restart.'
+                )
+                sys.exit(1)
+
+            side = "SELL" if e_qty > 0 else "BUY"
+            try:
+                await E.placeMarketOrder(side, float(qty_need), True)
+                logging.info                (f'🔵 Rebalance E: {side} {qty_need:.8f}' )
+                _ts_since_last_action       = now
+                _need_report_unbalanced     = True
+                _reducing_msg               = f'✅ Reduced {qty_need:.8f} on Extended'
+            except Exception as e:
+                logging.error(f'bal E error: {e}')
+                await send_tele_crit(f'❌ bal E error: {e}')
+
+        # recheck after the nudge
+        await asyncio.sleep(1)
         await asyncio.gather(L.loadPos(), E.loadPos())
-        return False  # still unbalanced → return
 
-    # --- Transition 2: Became balanced again ---
-    if _last_balance_state.get(pair_key, False):
-        msg = (
-            f'✅ {L.pair["symbol"]} is Balanced Again\n'
-            f'Lighter {L.pair["symbol"]}: {L.accountData["qty"]}\n'
-            f'Extended {E.pair["symbol"]}: {E.accountData["qty"]}\n'
-            f'(at {time.strftime("%d-%m-%Y %H:%M:%S")})'
-        )
-        await send_tele_crit(msg)
-
-    # Update state to balanced
-    _last_balance_state[pair_key] = False
-    return True
-
-
+    # while flagged, keep reporting unbalanced to the caller
+    await asyncio.gather            (L.loadPos(), E.loadPos())
+    l2, e2, _, _                    = calc_inv(L, E)
+    if abs(l2 + e2) < 1e-8:
+        _need_balancing             = False
+        logging.info                (f'✅ {L.pair["symbol"]} balanced again')
+        if not _need_report_unbalanced:
+            await send_tele_crit    (f'⚠️ {L.pair["symbol"]} Order Fills Delayed')
+        else:
+            await send_tele_crit    (
+                f'{_reducing_msg}\n'
+                f'✅ {L.pair["symbol"]} is balanced again\n'
+                f'it was not balanced since 60s ago\n'
+                f'Current Inv [L: {L.accountData["qty"]}, E: {E.accountData["qty"]}]\n'
+            )
+            _need_report_unbalanced = False
+        return True
+    return False
 
 
 
@@ -222,6 +224,15 @@ def fmt_rate(a, b):
     if a is None or b is None:
         return "N/A"
     return f"{b - a:.6f}%"
+
+def fmt_funding(rate):
+    if rate is None:
+        return "N/A"
+    try:
+        return f"{float(rate):.6f}%"
+    except (ValueError, TypeError):
+        return "N/A"
+
 
 def printInfos(L, E, minSpread_toEntry):
     lbid, lszb, lask, lsza  = L.ob["bidPrice"], L.ob["bidSize"], L.ob["askPrice"], L.ob["askSize"]
@@ -252,7 +263,6 @@ def printInfos(L, E, minSpread_toEntry):
     INV_LEVEL_TO_MULT       = cfg["INV_LEVEL_TO_MULT"]
     PERC_OF_OB              = cfg["PERC_OF_OB"] / 100
 
-    # spreadLE, spreadEL      = calc_spreads(L, E)
     spreadLE_TT             = (ebid - lask) / lask * 100 if ebid and lask else None
     spreadLE_TM             = (eask - lask) / lask * 100 if ebid and lask else None
     spreadLE_MT             = (ebid - lbid) / ebid * 100 if ebid and lask else None  
@@ -264,12 +274,12 @@ def printInfos(L, E, minSpread_toEntry):
     # --- inventory levels table ---
     levels_text = ""
     if MAX_INVENTORY_VALUE > 0 and INV_LEVEL_TO_MULT > 0:
-        INV_STEP_VALUE          = MAX_INVENTORY_VALUE / INV_LEVEL_TO_MULT
-        levels_text             += "\n---\nSpread Averaging\nValue($) MinSpread(%)"
+        INV_STEP_VALUE      = MAX_INVENTORY_VALUE / INV_LEVEL_TO_MULT
+        levels_text         += "\n---\nSpread Averaging\nValue($) MinSpread(%)"
         for i in range(INV_LEVEL_TO_MULT):
-            vol                 = (i) * INV_STEP_VALUE
-            spread              = MIN_SPREAD * (SPREAD_MULTIPLIER ** i)
-            levels_text         += f"\n{vol:>7.0f} {spread:.2f}"
+            vol             = (i) * INV_STEP_VALUE
+            spread          = MIN_SPREAD * (SPREAD_MULTIPLIER ** i)
+            levels_text     += f"\n{vol:>7.0f} {spread:.2f}"
 
     line = (
         f"---"
@@ -282,6 +292,8 @@ def printInfos(L, E, minSpread_toEntry):
         f"|E        : {E.ob}"
         f"|---"
         f"|Funding Rate"
+        f"|Lighter  : {fmt_funding(L.currFundRate)}"
+        f"|Extended : {fmt_funding(E.currFundRate)}"
         f"|Net LE   : {fmt_rate(L.currFundRate, E.currFundRate)}"
         f"|Net EL   : {fmt_rate(E.currFundRate, L.currFundRate)}"
         f"|---"
@@ -292,7 +304,7 @@ def printInfos(L, E, minSpread_toEntry):
         f"|qtyE     : {e_qty} @ {e_entry_price} / ${(e_qty*e_entry_price):.2f}"
         f"{levels_text}"
         f"|---"
-        f"|Config"
+        f"|Configs"
         f"|TRADES_INTERVAL       : {TRADES_INTERVAL}s"
         f"|MIN_SPREAD            : {MIN_SPREAD}%"
         f"|SPREAD_MULTIPLIER     : {SPREAD_MULTIPLIER}"
@@ -303,29 +315,34 @@ def printInfos(L, E, minSpread_toEntry):
         f"|MAX_INVENTORY_VALUE   : ${MAX_INVENTORY_VALUE}"
         f"|INV_LEVEL_TO_MULT     : {INV_LEVEL_TO_MULT}"
         f"|PERC_OF_OB            : {PERC_OF_OB*100}%"
+        f"|---"
+        f"|DEX Configs"
+        f'|Lighter               : min_size [{L.pair["min_size"]}], min_value [{L.pair["min_value"]}]'
+        f'|Extended              : min_size [{E.pair["min_size"]}]'
+        
         )
 
     update_live(L.pair["symbol"], E.pair["symbol"], line)
 
 # --- Main Trading Loop ---
 async def main(symbolL, symbolE, cfg):
-    TRADES_INTERVAL         = cfg["TRADES_INTERVAL"]
-    MIN_SPREAD              = cfg["MIN_SPREAD"]
-    SPREAD_MULTIPLIER       = cfg["SPREAD_MULTIPLIER"]
-    SPREAD_TP               = cfg["SPREAD_TP"]
-    MIN_TRADE_VALUE         = cfg["MIN_TRADE_VALUE"]
-    MAX_TRADE_VALUE_ENTRY   = cfg["MAX_TRADE_VALUE_ENTRY"]
-    MAX_TRADE_VALUE_EXIT    = cfg["MAX_TRADE_VALUE_EXIT"]
-    MAX_INVENTORY_VALUE     = cfg["MAX_INVENTORY_VALUE"]
-    INV_LEVEL_TO_MULT       = cfg["INV_LEVEL_TO_MULT"]
-    PERC_OF_OB              = cfg["PERC_OF_OB"] / 100
+    TRADES_INTERVAL             = cfg["TRADES_INTERVAL"]
+    MIN_SPREAD                  = cfg["MIN_SPREAD"]
+    SPREAD_MULTIPLIER           = cfg["SPREAD_MULTIPLIER"]
+    SPREAD_TP                   = cfg["SPREAD_TP"]
+    MIN_TRADE_VALUE             = cfg["MIN_TRADE_VALUE"]
+    MAX_TRADE_VALUE_ENTRY       = cfg["MAX_TRADE_VALUE_ENTRY"]
+    MAX_TRADE_VALUE_EXIT        = cfg["MAX_TRADE_VALUE_EXIT"]
+    MAX_INVENTORY_VALUE         = cfg["MAX_INVENTORY_VALUE"]
+    INV_LEVEL_TO_MULT           = cfg["INV_LEVEL_TO_MULT"]
+    PERC_OF_OB                  = cfg["PERC_OF_OB"] / 100
 
-    logging.info            (f"🚀 Starting Bot for {symbolL}_{symbolE} ...")
+    logging.info                (f"🚀 Starting Bot for {symbolL}_{symbolE} ...")
 
-    L, E                    = LighterAPI(symbolL), ExtendedAPI(symbolE)
+    L, E                        = LighterAPI(symbolL), ExtendedAPI(symbolE)
     await asyncio.gather(L.init(), E.init())
     await asyncio.gather(L.initPair(), E.initPair())
-    logging.info            ("✅ Both Exchange Initial is Done.")
+    logging.info                ("✅ Both Exchange Initial is Done.")
     
     await asyncio.gather(L.loadPos(), E.loadPos())
 
@@ -422,13 +439,13 @@ async def main(symbolL, symbolE, cfg):
                 if qty < E.pair["min_size"] or qty*L.ob["bidPrice"] < L.pair["min_value"] or qty < L.pair["min_size"]:
                     reason          = ''
                     if qty < E.pair["min_size"]:
-                        reason      += f"qty {qty} < E.min_size {E.pair['min_size']}. "
+                        reason      += f"• Less Than Extended Minimum Trade Size\n"                        
                     if qty*L.ob["bidPrice"] < L.pair["min_value"]:
-                        reason      += f"qty*L.bidPrice {qty*L.ob['bidPrice']:.2f} < L.min_value {L.pair['min_value']}. "
+                        reason      += f"• Less Than Lighter Minimum Notional\n"
                     if qty < L.pair["min_size"]:
-                        reason      += f"qty {qty} < L.min_size {L.pair['min_size']}. "
+                        reason      += f"• Less Than Lighter Minimum Trade Size"
                         
-                    msg_            = f"Stopping Bot..\n[exitCond_fromLE]\nReason:{reason}\nToDo: increase MIN_TRADE_VALUE"
+                    msg_            = f'⚠️ {L.pair["symbol"]} Bot is Stopped..\n[exitCond_fromLE]\nReason: {reason}\nToDo: increase MIN_TRADE_VALUE'
                     logging.info    (msg_)
                     await send_tele_crit (msg_)                
                     await asyncio.sleep(1)         
@@ -469,12 +486,13 @@ async def main(symbolL, symbolE, cfg):
                 if qty < E.pair["min_size"] or qty*L.ob["askPrice"] < L.pair["min_value"] or qty < L.pair["min_size"]:
                     reason          = ''
                     if qty < E.pair["min_size"]:
-                        reason      += f"qty {qty} < E.min_size {E.pair['min_size']}. "
+                        reason      += f"• Less Than Extended Minimum Trade Size\n"
                     if qty*L.ob["askPrice"] < L.pair["min_value"]:
-                        reason      += f"qty*L.askPrice {qty*L.ob['askPrice']:.2f} < L.min_value {L.pair['min_value']}. "
+                        reason      += f"• Less Than Lighter Minimum Notional\n"
                     if qty < L.pair["min_size"]:
-                        reason      += f"qty {qty} < L.min_size {L.pair['min_size']}. "
-                    msg_            = f"[entryCond_EL] Calculated qty {qty} is less than min_size {E.pair['min_size']}, stopping bot..\n todo: increase MIN_TRADE_VALUE"
+                        reason      += f"• Less Than Lighter Minimum Trade Size"
+
+                    msg_            = f'⚠️ {L.pair["symbol"]} Bot is Stopped..\n[exitCond_fromEL]\nReason: {reason}\nToDo: increase MIN_TRADE_VALUE'
                     logging.info    (msg_)
                     await send_tele_crit (msg_)                
                     await asyncio.sleep(1)         
@@ -510,13 +528,13 @@ async def main(symbolL, symbolE, cfg):
                 if qty < E.pair["min_size"] or qty*L.ob["askPrice"] < L.pair["min_value"] or qty < L.pair["min_size"]:
                     reason          = ''
                     if qty < E.pair["min_size"]:
-                        reason      += f"qty {qty} < E.min_size {E.pair['min_size']}. "
+                        reason      += f"• Less Than Extended Minimum Trade Size\n"
                     if qty*L.ob["askPrice"] < L.pair["min_value"]:
-                        reason      += f"qty*L.askPrice {qty*L.ob['askPrice']:.2f} < L.min_value {L.pair['min_value']}. "
+                        reason      += f"• Less Than Lighter Minimum Notional\n"
                     if qty < L.pair["min_size"]:
-                        reason      += f"qty {qty} < L.min_size {L.pair['min_size']}. "
+                        reason      += f"• Less Than Lighter Minimum Trade Size"
 
-                    msg_            = f"Stopping Bot..\n[entryCond_LE]\nReason:{reason}\nToDo: increase MIN_TRADE_VALUE"
+                    msg_            = f'⚠️ {L.pair["symbol"]} Bot is Stopped..\n[entryCond_LE]\nReason: {reason}\nToDo: increase MIN_TRADE_VALUE'
                     logging.info    (msg_)
                     await send_tele_crit (msg_)       
                     await asyncio.sleep(1)         
@@ -550,13 +568,13 @@ async def main(symbolL, symbolE, cfg):
                 if qty < E.pair["min_size"] or qty*L.ob["bidPrice"] < L.pair["min_value"] or qty < L.pair["min_size"]:
                     reason          = ''
                     if qty < E.pair["min_size"]:
-                        reason      += f"qty {qty} < E.min_size {E.pair['min_size']}. "
+                        reason      += f"• Less Than Extended Minimum Trade Size\n"
                     if qty*L.ob["bidPrice"] < L.pair["min_value"]:
-                        reason      += f"qty*L.bidPrice {qty*L.ob['bidPrice']:.2f} < L.min_value {L.pair['min_value']}. "
+                        reason      += f"• Less Than Lighter Minimum Notional\n"
                     if qty < L.pair["min_size"]:
-                        reason      += f"qty {qty} < L.min_size {L.pair['min_size']}. "
+                        reason      += f"• Less Than Lighter Minimum Trade Size"
                     
-                    msg_            = f"Stopping Bot..\n[entryCond_EL]\nReason:{reason}\nToDo: increase MIN_TRADE_VALUE"
+                    msg_            = f'⚠️ {L.pair["symbol"]} Bot is Stopped..\n[entryCond_EL]\nReason: {reason}\nToDo: increase MIN_TRADE_VALUE'
                     logging.info    (msg_)
                     await send_tele_crit (msg_)                
                     await asyncio.sleep(1)         

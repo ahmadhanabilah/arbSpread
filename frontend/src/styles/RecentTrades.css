@@ -1,5 +1,34 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
+
+.trades-main-container {
+    background: #ffffff1f;
+    display: flex;
+    flex-wrap: nowrap;              /* keep horizontal */
+    justify-content: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+.trades-filter-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.symbol-filter {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #fff;
+}
+
+
 .trades-row-main-container {
     display: flex;
     flex-wrap: nowrap;              /* keep horizontal */
@@ -8,7 +37,8 @@
     flex-wrap: wrap;
     gap: 24px;
     width: 100%;
-    padding: 24px;
+    padding-right: 24px;
+    padding-left: 24px;
     box-sizing: border-box;
     font-family: 'Inter', sans-serif;
 }
@@ -24,38 +54,28 @@
     padding: 12px;
 }
 
+.trades-row h5 {
+    font-size: 0.6rem;
+    margin: 0px auto 10px auto;
+    font-weight: 550;
+}
+
 
 /* ✅ Header (title + CSV button) */
 .trades-table-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
     gap: 20px;
 }
 
 .trades-table-title {
-    margin-left:auto;
+    margin-left:10px;
     font-size: 1rem;
     font-weight: 600;
     color: #1f2937;
 }
 
-.trades-download-btn {
-    margin-right:auto;
-    font-size: 0.8rem;
-    background: #3b82f6;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 6px 12px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.trades-download-btn:hover {
-    background: #2563eb;
-}
 
 /* ✅ Table wrapper (scroll inside) */
 .trades-table {
@@ -90,6 +110,26 @@
     white-space: nowrap;
 }
 
+/* Make the first column sticky */
+.trades-table th:first-child,
+.trades-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2; /* keeps it above other cells */
+    background-color: #f3f4f6; /* match table background */
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05); /* optional subtle divider shadow */
+}
+
+/* Ensure header stays above body cells */
+.trades-table th:first-child {
+    z-index: 3;
+}
+.trades-table td:last-child,
+.trades-table th:last-child {
+    text-align: left;
+}
+
+
 /* ✅ PnL colors */
 .pnl-positive {
     color: #16a34a;
@@ -116,17 +156,118 @@
     background: #94a3b8;
 }
 
+
+
+
+.trades-table-buttons {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+/* ✅ Unified button base style */
+.trades-download-btn,
+.fifo-toggle {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 40px;        /* same width */
+    height: 30px;           /* same height */
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+/* ✅ Specific colors */
+.trades-download-btn {
+    background: #3b82f6;
+    color: #fff;
+}
+.trades-download-btn:hover {
+    background: #2563eb;
+}
+
+.fifo-toggle.on {
+    background-color: #22c55e;
+    color: white;
+}
+.fifo-toggle.off {
+    background-color: #ef4444;
+    color: white;
+}
+
+
+
+/* ===========================
+   Loading & Error States
+   =========================== */
+
+.loading,
+.error {
+    width: 100%;
+    text-align: center;
+    padding: 40px 0;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 8px;
+}
+
+/* ✳️ Loading animation */
+.loading {
+    color: #3b82f6;
+    position: relative;
+}
+
+.loading::after {
+    content: "";
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-left: 8px;
+    border: 2px solid #3b82f6;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ❌ Error message */
+.error {
+    color: #dc2626;
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    display: inline-block;
+    padding: 12px 24px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+
+
 /* ✅ Responsive adjustments */
 @media (max-width: 1024px) {
 
     .trades-table-title {
-        margin-left: auto;
+        margin-left: 0px;
+        margin-right: auto;
         font-size: 0.8rem;
     }
 
-    .trades-download-btn {
+    .trades-download-btn,
+    .fifo-toggle {
         margin-right: auto;
         font-size: 0.6rem;
+        min-width: 30px;        /* same width */
+        height: 20px;           /* same height */
     }
 
     .trades-table {
