@@ -25,6 +25,19 @@ def update_live(symbolL, symbolE, text):
         with open(live_path, "w", encoding="utf-8") as f:
             f.write(formatted + "\n")
 
+def clear_live(symbolL, symbolE):
+    """Clear the live log file for this symbol pair."""
+    
+    os.makedirs("spread_bot/logs", exist_ok=True)
+    live_path = f"spread_bot/logs/{symbolL}_{symbolE}_live.txt"
+
+    with _live_lock:
+        # Overwrite the file with an empty string
+        with open(live_path, "w", encoding="utf-8") as f:
+            f.write("")  # or just `pass` if you want truly empty file
+
+
+
 class ReverseFileHandler(logging.FileHandler):
     """Custom handler that writes newest logs at the top of the file."""
     def emit(self, record):
@@ -326,6 +339,8 @@ def printInfos(L, E, minSpread_toEntry):
 
 # --- Main Trading Loop ---
 async def main(symbolL, symbolE, cfg):
+    clear_live(symbolL, symbolE)
+
     TRADES_INTERVAL             = cfg["TRADES_INTERVAL"]
     MIN_SPREAD                  = cfg["MIN_SPREAD"]
     SPREAD_MULTIPLIER           = cfg["SPREAD_MULTIPLIER"]

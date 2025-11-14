@@ -1,3 +1,4 @@
+from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 from datetime import datetime
 import csv
@@ -47,6 +48,7 @@ class ExtendedAPI:
             starkPerpAcc
         )
         self.ws_client          = PerpetualStreamClient(api_url=MAINNET_CONFIG.stream_url)
+        await self.getAllSymbols()
         
     async def getAllSymbols(self):
         url                     = f"https://api.starknet.extended.exchange/api/v1/info/markets"
@@ -314,3 +316,91 @@ class ExtendedAPI:
             writer.writerows(combined)
 
         logger.info(f"[ExtendedAPI] ✅ Saved {len(combined)} total fundings (sorted desc) → {filename}")
+
+
+
+
+    async def getPositionsHistory(self, side=None, limit=300):
+        """
+        Fetch ALL pages of positions history and save to /db_ext/raw/_positions.csv
+        Adds readable_time in JKT timezone.
+        """
+        JKT_TZ = timezone(timedelta(hours=0))
+        try:
+            cursor = None
+            all_positions = []
+
+            while True:
+                resp = await self.client.account.get_positions_history(
+                    market_names=self.allSymbols,
+                    position_side=side,
+                    cursor=cursor,
+                    limit=limit,
+                )
+
+                if getattr(resp, "error", None):
+                    logger.error(f"[ExtendedAPI] getPositionsHistory() error: {resp.error}")
+                    break
+
+                positions = getattr(resp, "data", [])
+                if not positions:
+                    break
+
+                all_positions.extend(positions)
+                logger.info(f"[ExtendedAPI] Retrieved {len(positions)} positions (total {len(all_positions)})")
+
+                # pagination
+                cursor = None
+                if hasattr(resp, "pagination") and resp.pagination:
+                    cursor = getattr(resp.pagination, "next", None)
+                if not cursor and len(positions) == limit:
+                    last = positions[-1]
+                    cursor = getattr(last, "id", None)
+                if not cursor:
+                    break
+
+                await asyncio.sleep(0.15)
+
+            logger.info(f"[ExtendedAPI] ✔ TOTAL positions retrieved: {len(all_positions)}")
+
+            if not all_positions:
+                logger.info("[ExtendedAPI] No positions returned – nothing to save.")
+                return []
+
+            # ---- build dicts & readable_time ----
+            pos_dicts = []
+            for p in all_positions:
+                d = p.__dict__.copy()
+
+                # timestamp → readable time
+                ts = d.get("updated_time") or d.get("created_time")
+                if ts and str(ts).isdigit():
+                    # convert ms → seconds if needed
+                    ts = int(ts)
+                    if ts > 1e12:  # ms
+                        ts = ts / 1000
+                    dt = datetime.fromtimestamp(ts, tz=JKT_TZ)
+                    d["readable_time"] = dt.strftime("%Y-%m-%d %H:%M:%S")
+                else:
+                    d["readable_time"] = ""
+
+                pos_dicts.append(d)
+
+            # ---- save CSV ----
+            out_path = "/root/arbSpread/backend/db_ext/raw"
+            os.makedirs(out_path, exist_ok=True)
+            filename = f"{out_path}/_positions.csv"
+
+            fieldnames = sorted(set().union(*(d.keys() for d in pos_dicts)))
+            with open(filename, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(pos_dicts)
+
+            logger.info(f"[ExtendedAPI] 📄 Saved {len(pos_dicts)} positions → {filename}")
+            return all_positions
+
+        except Exception as e:
+            logger.error(f"[ExtendedAPI] getPositionsHistory() failed: {e}")
+            traceback.print_exc()
+            return []

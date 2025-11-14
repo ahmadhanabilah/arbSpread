@@ -10,6 +10,6 @@ async def main():
     task1 = asyncio.create_task(processDbExt())
     task2 = asyncio.create_task(processDbLig())
     await asyncio.gather(task1, task2)
-
+    
 if __name__ == "__main__":
     asyncio.run(main())

@@ -124,7 +124,7 @@ class ExtendedAPI:
     def _handle_funding_update(self, msg):
         try:
             fr = float(msg.funding_rate)
-            self.currFundRate = fr
+            self.currFundRate = fr*100
         except Exception as e:
             logger.error(f"⚠️ Error handling Extended funding update: {e}") 
 

@@ -305,8 +305,9 @@ class LighterAPI:
 
                 positions = accounts[0].get("positions", [])
                 if not positions:
-                    logger.warning(f"⚠️ No positions found (attempt {attempt})")
-                    raise Exception("Empty positions in response")
+                    return self.accountData
+                    # logger.warning(f"⚠️ No positions found (attempt {attempt})")
+                    # raise Exception("Empty positions in response")
 
                 # ✅ Try to find the current symbol
                 current_pos = next((p for p in positions if p["symbol"].upper() == symbol.upper()), None)
@@ -316,8 +317,9 @@ class LighterAPI:
                     self.accountData = {"qty": qty, "entry_price": entry_price}
                     return self.accountData
                 else:
-                    logger.warning(f"⚠️ No position found for symbol {symbol} (attempt {attempt})")
-                    raise Exception("Symbol not found in positions")
+                    return self.accountData
+                    # logger.warning(f"⚠️ No position found for symbol {symbol} (attempt {attempt})")
+                    # raise Exception("Symbol not found in positions")
 
             except Exception as e:
                 logger.info(f"Retry {attempt}/{max_retries} — {e}")

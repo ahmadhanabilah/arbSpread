@@ -2,7 +2,7 @@
 from __future__ import annotations
 from dotenv import load_dotenv
 import os, csv, glob, logging
-from datetime import datetime
+from datetime import datetime, timedelta   # ⬅️ tambahin timedelta
 from decimal import Decimal, getcontext
 from collections import defaultdict
 
@@ -15,8 +15,8 @@ getcontext().prec = 50
 
 # Scan both legs by default
 FIFO_DIRS = ['/root/arbSpread/backend/db_lig/fifo']
-OUT_PATH  = '/root/arbSpread/backend/db_lig/fifo/_daily.csv'   # change if you prefer another location
-OUT_FIELDS = ["Date", "PNL", "Volume"]  # PNL from realized_pnl, Volume = sum(|qty| * price), JKT date
+OUT_PATH  = '/root/arbSpread/backend/db_lig/fifo/_daily.csv'
+OUT_FIELDS = ["Date", "PNL", "Volume"]  # now: Date in UTC
 
 # ---- Helpers
 def to_dec(x) -> Decimal:
@@ -55,11 +55,14 @@ def _iter_fifo_rows(fifo_dirs: list[str]):
 
 def build_daily(
     fifo_dirs: list[str] = FIFO_DIRS,
-    out_path: str = OUT_PATH,
+    out_path: str        = OUT_PATH,
+    use_utc: bool        = False,   # ⬅️ default: pakai UTC
+    src_utc_offset_hours:int = 7,  # readable_time = UTC+7 (JKT)
 ):
     """
     Build a daily aggregation:
-      - Date   : JKT date from `readable_time`
+      - Date   : if use_utc=True  -> UTC date
+                 if use_utc=False -> JKT date (as-is)
       - PNL    : sum of realized_pnl
       - Volume : sum of |qty| * price
     """
@@ -68,15 +71,20 @@ def build_daily(
 
     for row in _iter_fifo_rows(fifo_dirs):
         ts = row.get("readable_time")
-        dt = parse_dt_jkt(ts)
-        if not dt:
+        dt_local = parse_dt_jkt(ts)
+        if not dt_local:
             continue
+
+        if use_utc:
+            # convert from local (UTC+7) → UTC
+            dt = dt_local - timedelta(hours=src_utc_offset_hours)
+        else:
+            dt = dt_local
 
         key_date = dt.date().isoformat()
 
-        qty   = to_dec(row.get("qty"))
-        price = to_dec(row.get("price"))
-        # realized_pnl column name is exactly `realized_pnl` in your new schema
+        qty      = to_dec(row.get("qty"))
+        price    = to_dec(row.get("price"))
         realized = to_dec(row.get("realized_pnl"))
 
         daily[key_date]["pnl"] += realized
@@ -101,7 +109,7 @@ def build_daily(
         for r in out_rows:
             w.writerow(r)
 
-    logger.info(f"✅ Daily written to {out_path} (from {rows_seen} rows)")
+    logger.info(f"✅ Daily written to {out_path} (from {rows_seen} rows), use_utc={use_utc}")
 
 if __name__ == "__main__":
-    build_daily()
+    build_daily()  # default: UTC days from JKT timestamps

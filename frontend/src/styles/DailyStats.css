@@ -69,6 +69,14 @@
     color: #000000;
 }
 
+.daily-stats-table-container .lig-date-header {
+    background-color: #e5e7eb;
+    color: #000000;
+}
+.daily-stats-table-container .lig-date-col {
+    color: #000000;
+}
+
 .daily-stats-table-container .lig-pnl-header {
     background-color: #e5e7eb;
     color: #000000;
@@ -88,9 +96,20 @@
 }
 
 
+
+
+
 .daily-stats-table-container .ext-header {
     border-right: 2px solid #d1d5db;
     background-color: #e5e7eb;
+    color: #000000;
+}
+
+.daily-stats-table-container .ext-date-header {
+    background-color: #e5e7eb;
+    color: #000000;
+}
+.daily-stats-table-container .ext-date-col {
     color: #000000;
 }
 

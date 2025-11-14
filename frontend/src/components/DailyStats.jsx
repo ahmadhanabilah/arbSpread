@@ -45,7 +45,7 @@ export default function DailyStats() {
         return isNaN(num) ? "0.00" : num.toFixed(decimals);
     };
 
-    const dataLength = Math.min(pnlLig.length, pnlExt.length);
+    const dataLength = Math.max(pnlLig.length, pnlExt.length);
 
     if (loading) return <div className="loading">Loading...</div>;
     if (error) return <div className="error">{error}</div>;
@@ -55,14 +55,16 @@ export default function DailyStats() {
                 <table>
                     <thead>
                         <tr>
-                            <th rowSpan="2" className="date-header">Date</th>
                             <th rowSpan="2" className="netpnl-header">Net PnL ($)</th>
-                            <th colSpan="2" className="ext-header">Extended Stats</th>
-                            <th colSpan="2" className="lig-header">Lighter Stats</th>
+                            <th colSpan="3" className="ext-header">Extended Stats</th>
+                            <th colSpan="3" className="lig-header">Lighter Stats</th>
                         </tr>
                         <tr>
+                            <th className="ext-date-header">Date</th>
                             <th className="ext-pnl-header">PnL ($)</th>
                             <th className="ext-vol-header">Volume ($)</th>
+
+                            <th className="lig-date-header">Date</th>
                             <th className="lig-pnl-header">PnL ($)</th>
                             <th className="lig-vol-header">Volume ($)</th>
                         </tr>
@@ -78,12 +80,15 @@ export default function DailyStats() {
 
                                 return (
                                     <tr key={lig.date || i}>
-                                        <td className="date-col">{lig.Date || "N/A"}</td>
                                         <td className={`netpnl-col ${net >= 0 ? "pnl-positive" : "pnl-negative"}`}>
                                             {formatValue(net)}
                                         </td>
+
+                                        <td className="ext-date-col">{ext.Date || "N/A"}</td>
                                         <td className="ext-pnl-col">{formatValue(ext.PNL)}</td>
                                         <td className="ext-vol-col">{formatValue(ext.Volume)}</td>
+
+                                        <td className="lig-date-col">{lig.Date || "N/A"}</td>
                                         <td className="ext-pnl-col">{formatValue(lig.PNL)}</td>
                                         <td className="ext-vol-col">{formatValue(lig.Volume)}</td>
                                     </tr>

@@ -180,7 +180,7 @@ def build_cycles_for_file(fifo_path: str, out_path: str):
                 current["exit_time"] = ts_str if dt else ""
                 current["entry_price"] = (entry_notional / entry_qty) if entry_qty != 0 else Decimal("0")
                 current["exit_price"]  = (exit_notional / exit_qty)   if exit_qty  != 0 else Decimal("0")
-                realized = current["trade_pnl"] - current["trading_fees"] - current["funding_fees"]
+                realized = current["trade_pnl"] - current["trading_fees"] + current["funding_fees"]
 
                 cycles.append(_finalize_cycle_row(current, realized))
                 # Reset container; next ADD_* (possibly same timestamp) starts a new cycle
@@ -195,7 +195,7 @@ def build_cycles_for_file(fifo_path: str, out_path: str):
     if current["entry_time"] and (current["qty_opened"] > 0) and (current["market"] or rows):
         current["entry_price"] = (entry_notional / entry_qty) if entry_qty != 0 else Decimal("0")
         current["exit_price"]  = (exit_notional / exit_qty)   if exit_qty  != 0 else ""  # blank if no closes yet
-        realized = current["trade_pnl"] - current["trading_fees"] - current["funding_fees"]
+        realized = current["trade_pnl"] - current["trading_fees"] + current["funding_fees"]
         cycles.append(_finalize_cycle_row(current, realized, open_cycle=True))
 
     # Sort: open cycles first (empty exit_time), then by exit_time desc, then entry_time desc

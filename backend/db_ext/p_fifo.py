@@ -244,7 +244,7 @@ def integrate_funding_into_trades(trades_path: str, fundings_path: str):
         if not t.get("funding_fees"):
             t["funding_fees"] = "0"
         # recompute realized
-        t["realized_pnl"] = str(to_dec(t["trade_pnl"]) - to_dec(t["trading_fees"]) - to_dec(t["funding_fees"]))
+        t["realized_pnl"] = str(to_dec(t["trade_pnl"]) - to_dec(t["trading_fees"]) + to_dec(t["funding_fees"]))
 
     # Load fundings
     with open(fundings_path, newline="", encoding="utf-8") as f:
@@ -287,7 +287,7 @@ def integrate_funding_into_trades(trades_path: str, fundings_path: str):
                     new_funding = to_dec(t["funding_fees"]) + pending_sum + amt
                     t["funding_fees"] = str(new_funding)
                     t["funding_fee_details"] = json.dumps(details)
-                    t["realized_pnl"] = str(to_dec(t["trade_pnl"]) - to_dec(t["trading_fees"]) - new_funding)
+                    t["realized_pnl"] = str(to_dec(t["trade_pnl"]) - to_dec(t["trading_fees"]) + new_funding)
 
                     pending_sum = Decimal("0")
                     pending_list = []
@@ -372,43 +372,3 @@ def build_allSymbols(
     rows.sort(key=lambda r: (-epoch_from_row(r), r.get("market","")))
     ensure_headers_and_write(out_path, rows, OUTPUT_FIELDS)
     logger.info(f"📦 Merged → {out_path}")
-
-def build_daily_pnl(
-    all_symbols_path=os.path.join(FIFO_DIR, "_allSymbols.csv"),
-    out_path       =os.path.join(FIFO_DIR, "_sum.csv"),
-    jkt_utc_offset_hours=7
-):
-    """Daily summary using extended schema: volume & realized_pnl."""
-    if not os.path.exists(all_symbols_path):
-        logger.info(f"⚠️ File not found: {all_symbols_path}")
-        return
-
-    from collections import defaultdict
-    daily = defaultdict(lambda: {"volume": Decimal("0"), "realized": Decimal("0")})
-    use_abs_qty = True
-
-    with open(all_symbols_path, newline="", encoding="utf-8") as f:
-        r = csv.DictReader(f)
-        for row in r:
-            dt_jkt = parse_jkt(row.get("readable_time",""))
-            if dt_jkt is None:
-                continue
-            dt_utc = dt_jkt - timedelta(hours=jkt_utc_offset_hours)
-            key_date = dt_utc.date().isoformat()
-            qty = to_dec(row.get("qty"))
-            price = to_dec(row.get("price"))
-            realized = to_dec(row.get("realized_pnl"))
-
-            vol = (qty.copy_abs() if use_abs_qty else qty) * price
-            daily[key_date]["volume"]   += vol
-            daily[key_date]["realized"] += realized
-
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    rows = [
-        {"readable_date": d, "volume": str(v["volume"]), "realized_pnl": str(v["realized"])}
-        for d, v in daily.items()
-    ]
-    rows.sort(key=lambda x: x["readable_date"], reverse=True)
-    ensure_headers_and_write(out_path, rows, ["readable_date", "volume", "realized_pnl"])
-    logger.info(f"✅ Daily PnL written to {out_path}")
-
