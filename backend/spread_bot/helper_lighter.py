@@ -126,7 +126,7 @@ class LighterAPI:
 
                 except Exception as e:
                     self.currFundRate = None
-                    logger.error(f"[Funding WS] disconnected: {e} — retrying in 1s")
+                    logger.error(f"[Lighter Funding WS] disconnected: {e} — retrying in 1s")
                     await asyncio.sleep(1)
 
         self._wsFundingTask = asyncio.create_task(_run())
@@ -271,7 +271,8 @@ class LighterAPI:
                 if attempt < max_retries:
                     await asyncio.sleep(delay)
                 else:
-                    msg                 = '❌ [Lighter] PlaceMarketOrder Failed after all retries'
+                    sym                 = self.pair["symbol"]
+                    msg                 = f'❌ [Lighter : {sym} ] PlaceMarketOrder Failed after all retries'
                     await send_tele_crit(msg)
                     logger.error        (msg)
                     return return_msg + "• FAILED after all retries"
@@ -432,9 +433,9 @@ class LighterAPI:
         market_index            = self.pair["market_id"]
         try:
             start_time          = time.perf_counter()
-            tx, tx_hash, err    = await self.client.cancel_order(
-                market_index        = market_index,
-                order_index        = 11111111111,
+            tx, tx_hash, err    = await self.client.cancel_all_orders(
+                time_in_force   = 0,
+                time            = 0,
             )
             if err:
                 raise Exception(err)

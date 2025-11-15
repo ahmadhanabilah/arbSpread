@@ -194,7 +194,8 @@ class ExtendedAPI:
                 if attempt < max_retries:
                     await asyncio.sleep(delay)
                 else:
-                    msg                 = '❌ [Extended] PlaceMarketOrder Failed after all retries'
+                    sym                 = self.pair["symbol"]
+                    msg                 = f'❌ [Extended : {sym} ] PlaceMarketOrder Failed after all retries'
                     await send_tele_crit(msg)
                     logger.error        (msg)
                     return return_msg + "• FAILED after all retries"

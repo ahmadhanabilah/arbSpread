@@ -34,9 +34,7 @@ def clear_live(symbolL, symbolE):
     with _live_lock:
         # Overwrite the file with an empty string
         with open(live_path, "w", encoding="utf-8") as f:
-            f.write("")  # or just `pass` if you want truly empty file
-
-
+            f.write("--")  # or just `pass` if you want truly empty file
 
 class ReverseFileHandler(logging.FileHandler):
     """Custom handler that writes newest logs at the top of the file."""
@@ -170,6 +168,7 @@ async def balance_positions(L, E):
 
             side = "SELL" if l_qty > 0 else "BUY"
             try:
+                await asyncio.gather        (L.cancelOrders(), E.cancelOrders())
                 await L.placeMarketOrder    (side, float(qty_need), True)
                 logging.info                (f'🟠 Rebalance L: {side} {qty_need:.8f}')
                 _ts_since_last_action       = now
@@ -191,6 +190,7 @@ async def balance_positions(L, E):
 
             side = "SELL" if e_qty > 0 else "BUY"
             try:
+                await asyncio.gather        (L.cancelOrders(), E.cancelOrders())
                 await E.placeMarketOrder(side, float(qty_need), True)
                 logging.info                (f'🔵 Rebalance E: {side} {qty_need:.8f}' )
                 _ts_since_last_action       = now
@@ -214,6 +214,7 @@ async def balance_positions(L, E):
             await send_tele_crit    (f'⚠️ {L.pair["symbol"]} Order Fills Delayed')
         else:
             await send_tele_crit    (
+                f'✅ Canceled All Open Orders\n'
                 f'{_reducing_msg}\n'
                 f'✅ {L.pair["symbol"]} is balanced again\n'
                 f'it was not balanced since 60s ago\n'
@@ -293,6 +294,8 @@ def printInfos(L, E, minSpread_toEntry):
             vol             = (i) * INV_STEP_VALUE
             spread          = MIN_SPREAD * (SPREAD_MULTIPLIER ** i)
             levels_text     += f"\n{vol:>7.0f} {spread:.2f}"
+    else:
+        levels_text         = "\n---\nBot isn't Looking for Entry"
 
     line = (
         f"---"
@@ -311,7 +314,7 @@ def printInfos(L, E, minSpread_toEntry):
         f"|Net EL   : {fmt_rate(E.currFundRate, L.currFundRate)}"
         f"|---"
         f"|Inventory"
-        f"|Δ        : {spreadInv:.2f}% => Bot is Looking For {minSpread_toEntry:.2f}% to Entry"
+        f"|Δ        : {spreadInv:.2f}%"
         f"|Dir      : {dir}"
         f"|qtyL     : {l_qty} @ {l_entry_price} / ${(l_qty*l_entry_price):.2f}"
         f"|qtyE     : {e_qty} @ {e_entry_price} / ${(e_qty*e_entry_price):.2f}"

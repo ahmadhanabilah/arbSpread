@@ -161,8 +161,8 @@ export default function RecentTrades() {
                         ) : (
                             <thead>
                                 <tr>
-                                    <th>Time</th>
                                     <th>Symbol</th>
+                                    <th>Time</th>
                                     <th>Realized PNL ($)</th>
                                     <th>Qty</th>
                                     <th>Price</th>
@@ -199,14 +199,14 @@ export default function RecentTrades() {
                                     </tr>
                                 ) : (
                                     <tr key={i}>
-                                        <td>{r.readable_time}</td>
                                         <td>{r.market}</td>
+                                        <td>{r.readable_time}</td>
                                         <td className={parseFloat(r.realized_pnl) > 0 ? "pnl-positive" : "pnl-negative"}>
                                             {parseFloat(r.realized_pnl || 0).toFixed(4)}
                                         </td>
                                         <td>{parseFloat(r.qty).toFixed(4)}</td>
                                         <td>{parseFloat(r.price).toFixed(4)}</td>
-                                        <td>{parseFloat(r.trade_type).toFixed(4)}</td>
+                                        <td>{r.trade_type}</td>
                                         <td className={parseFloat(r.trade_pnl) > 0 ? "pnl-positive" : "pnl-negative"}>
                                             {parseFloat(r.trade_pnl || 0).toFixed(4)}
                                         </td>
