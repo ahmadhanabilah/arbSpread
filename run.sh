@@ -63,11 +63,6 @@ source $VENV_PATH;
 python3 data_backend.py;
 "
 
-# -----------------------------
-# STEP 6 — Start frontend
-# -----------------------------
-cd "$FRONTEND_DIR"
-echo "▶️ Starting frontend in screen: $FRONTEND_SCREEN"
 # STEP 6 — Start frontend
 # -----------------------------
 cd "$FRONTEND_DIR"
