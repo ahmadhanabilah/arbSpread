@@ -69,18 +69,20 @@ npm install react-icons marked
 
 cd ..
 
-# === 7) Copy .env_example to .env (only if .env doesn't exist) ===
-if [ ! -f ".env" ]; then
-  echo "📌 Creating .env from .env_example..."
-  if [ -f ".env_example" ]; then
-    cp .env_example .env
-    echo "➡️ .env created"
+# === 7) Copy backend/.env_example → backend/.env (only if .env doesn't exist) ===
+BACKEND_ENV_DIR="/root/arbSpread/backend"
+if [ ! -f "$BACKEND_ENV_DIR/.env" ]; then
+  echo "📌 Creating backend .env from .env_example..."
+  if [ -f "$BACKEND_ENV_DIR/.env_example" ]; then
+    cp "$BACKEND_ENV_DIR/.env_example" "$BACKEND_ENV_DIR/.env"
+    echo "➡️ backend/.env created"
   else
-    echo "❌ .env_example NOT FOUND — please add manually"
+    echo "❌ backend/.env_example NOT FOUND — please add manually"
   fi
 else
-  echo "⚠️ .env already exists — skip copy"
+  echo "⚠️ backend/.env already exists — skip copy"
 fi
+
 
 # === 8) Run updater / launcher ===
 if [ -f "run.sh" ]; then
