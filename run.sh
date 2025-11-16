@@ -68,9 +68,15 @@ python3 data_backend.py;
 # -----------------------------
 cd "$FRONTEND_DIR"
 echo "▶️ Starting frontend in screen: $FRONTEND_SCREEN"
-screen -dmS "$FRONTEND_SCREEN" bash -c '
+# STEP 6 — Start frontend
+# -----------------------------
+cd "$FRONTEND_DIR"
+echo "▶️ Starting frontend in screen: $FRONTEND_SCREEN"
+screen -dmS "$FRONTEND_SCREEN" bash -c "
+source ~/.nvm/nvm.sh;
 npm run dev -- --host --port 3000;
-'
+"
+
 
 sleep 2
 
