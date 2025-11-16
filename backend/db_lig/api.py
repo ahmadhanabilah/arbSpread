@@ -147,12 +147,6 @@ class LighterAPI:
             os.makedirs(os.path.dirname(filename), exist_ok=True)
             file_exists         = os.path.exists(filename)
 
-            # --- Step 1: Auth token ---
-            auth = await self._get_auth_token(False)
-            if not auth:
-                logger.error("❌ Auth token unavailable.")
-                return
-
             # --- Step 2: Load market map ---
             market_map          = {}
             market_file         = "/root/arbSpread/backend/db_lig/config/lighterMarkets.csv"
@@ -192,21 +186,28 @@ class LighterAPI:
                 logger.info("🆕 No existing file found — starting full sync.")
 
             # --- Step 4: API setup ---
-            url = f"{self.config['base_url']}/api/v1/positionFunding"
-            headers = {
-                "accept": "application/json",
-                "authorization": auth,
-            }
-            params = {
-                "account_index": self.config["account_index"],
-                "limit": page_size,
-            }
 
             total_new = 0
             cursor = None
 
             async with aiohttp.ClientSession() as session:
                 while True:
+                    # --- Step 1: Auth token ---
+                    auth = await self._get_auth_token(True)
+                    if not auth:
+                        logger.error("❌ Auth token unavailable.")
+                        return
+
+                    url = f"{self.config['base_url']}/api/v1/positionFunding"
+                    headers = {
+                        "accept": "application/json",
+                        "authorization": auth,
+                    }
+                    params = {
+                        "account_index": self.config["account_index"],
+                        "limit": page_size,
+                    }
+
                     if cursor:
                         params["cursor"] = cursor
 
@@ -215,6 +216,7 @@ class LighterAPI:
                         try:
                             async with session.get(url, headers=headers, params=params, timeout=30) as resp:
                                 data = await resp.json()
+                                logger.info(headers)
                                 break
                         except Exception as e:
                             wait = 2 ** attempt
