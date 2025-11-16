@@ -4,90 +4,31 @@ Follow these steps to set up and run the project on a new VPS.
 
 ---
 
-## 1. Install Git Python, Screen, Node, NPM
-
-```bash
-sudo apt update
-sudo apt install -y python3 python3-pip python3-venv screen git
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-nvm install --lts
-nvm install node
-
-# 4️⃣ Check versions
-node -v
-npm -v
-python3 --version
-pip3 --version
-screen --version
-git --version
-
-```
-
----
-
-## 2. Clone repo & Create Virtual Environment
+## 1. Copy Repo
 
 ```bash
 git clone https://github.com/ahmadhanabilah/arbSpread.git
+```
+
+---
+
+## 2. Run init.sh
+
+```bash
 cd arbSpread
-python3 -m venv .venv
-source .venv/bin/activate
+bash init.sh
 ```
 
----
+## 3. Open website and fill the .env
 
-## 3. Install Requirements
-
+## 4. Run run.sh
 ```bash
-pip install -r requirements.txt
+cd arbSpread
+bash init.sh
 ```
 
-## 4. Frontend
+## 4. Run run.sh
 
-```bash
-screen -S web-frontend
-```
-
-```bash
-npm create vite@latest frontend -- --template react
-cd frontend
-npm install
-npm install react-icons
-npm install marked
-```
-
-## Need to re-update all files, because frontend is modified by npm
-```bash
-cd ..
-git fetch origin
-git reset --hard origin/main
-```
-
-
-```bash
-cd frontend
-npm run dev -- --host --port 3000
-```
-
-
-
-## 5. Backend
-
-```bash
-screen -S web-backend
-```
-
-rename .env_example to .env and fill credentials
-
-```bash
-source .venv/bin/activate
-cd backend
-python3 unified_backend.py
-```
-
----
 
 ✅ **Setup complete!**  
 Your environment is now ready to run the project.
